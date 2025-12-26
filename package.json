@@ -40,7 +40,9 @@
     "build": "pnpm run clean && pnpm run build:moon && pnpm run build:bundle && pnpm run build:types",
     "prepublishOnly": "pnpm run build",
     "dev": "vite",
-    "test": "moon test"
+    "test": "moon test",
+    "version": "node scripts/sync-version.js && git add moon.mod.json",
+    "release": "node scripts/release.js"
   },
   "packageManager": "pnpm@10.26.2",
   "devDependencies": {
