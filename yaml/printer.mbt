@@ -7,8 +7,8 @@ pub fn to_doc(node : YamlNode) -> @pretty.Doc {
 ///|
 fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
   let trivia = node.trivia()
-  let leading = trivia_to_doc(trivia.leading)
-  let trailing = trivia_to_doc(trivia.trailing)
+  let leading = trivia_to_doc(trivia.leading, true)
+  let trailing = trivia_to_doc(trivia.trailing, false)
   let content = match node {
     YNull(_) => @pretty.text("null")
     YBool(true, _) => @pretty.text("true")
@@ -99,8 +99,12 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
   let docs : Array[@pretty.Doc] = []
   for i = 0; i < pairs.length(); i = i + 1 {
     let pair = pairs[i]
+    // Output key_trivia leading comments
+    let key_leading = trivia_to_doc(pair.key_trivia.leading, true)
     let key_doc = node_to_doc(pair.key, indent)
     let value_doc = node_to_doc(pair.value, indent + 2)
+    // Output key_trivia trailing comments
+    let key_trailing = trivia_to_doc(pair.key_trivia.trailing, false)
     // Check if value is a nested structure
     let is_nested = match pair.value {
       YSequence(_, _) | YMapping(_, _) => true
@@ -108,24 +112,29 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
     }
     if is_nested {
       docs.push(
-        @pretty.concat([key_doc, @pretty.text(":"), @pretty.hardline(), @pretty.nest(2, value_doc)]),
+        @pretty.concat([key_leading, key_doc, @pretty.text(":"), key_trailing, @pretty.hardline(), @pretty.nest(2, value_doc)]),
       )
     } else {
-      docs.push(@pretty.concat([key_doc, @pretty.text(": "), value_doc]))
+      docs.push(@pretty.concat([key_leading, key_doc, @pretty.text(":"), key_trailing, @pretty.text(" "), value_doc]))
     }
   }
   @pretty.join(docs, @pretty.hardline())
 }
 
 ///|
-fn trivia_to_doc(comments : Array[@common.Comment]) -> @pretty.Doc {
+fn trivia_to_doc(comments : Array[@common.Comment], is_leading : Bool) -> @pretty.Doc {
   if comments.is_empty() {
     return @pretty.Doc::nil()
   }
   let docs : Array[@pretty.Doc] = []
   for i = 0; i < comments.length(); i = i + 1 {
     let comment = comments[i]
-    docs.push(@pretty.text(" #" + comment.content))
+    let text = "#" + comment.content
+    if is_leading {
+      docs.push(@pretty.concat([@pretty.text(text), @pretty.hardline()]))
+    } else {
+      docs.push(@pretty.concat([@pretty.text(" "), @pretty.text(text)]))
+    }
   }
   @pretty.concat(docs)
 }
