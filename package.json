@@ -1,0 +1,52 @@
+{
+  "name": "yyjj",
+  "version": "0.1.0",
+  "description": "JSONC⇔YAML converter library with comment preservation, powered by MoonBit",
+  "type": "module",
+  "author": "Your Name <your.email@example.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/f4ah6o/yyjj.mbt.git"
+  },
+  "keywords": [
+    "jsonc",
+    "yaml",
+    "converter",
+    "parser",
+    "comment-preservation",
+    "moonbit"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rm -rf target dist",
+    "build:moon": "moon build --target js",
+    "build:bundle": "rolldown -c rolldown.config.mjs",
+    "build:types": "moon build --target js && mkdir -p dist && cp target/js/release/build/yyjj.d.ts dist/index.d.ts",
+    "build": "pnpm run clean && pnpm run build:moon && pnpm run build:bundle && pnpm run build:types",
+    "prepublishOnly": "pnpm run build",
+    "dev": "vite",
+    "test": "moon test"
+  },
+  "packageManager": "pnpm@10.26.2",
+  "devDependencies": {
+    "rolldown": "1.0.0-beta.57",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vite-plugin-moonbit": "^0.1.0"
+  }
+}

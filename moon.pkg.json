@@ -4,5 +4,20 @@
     { "path": "f4ah6o/yyjj/jsonc", "alias": "jsonc" },
     { "path": "f4ah6o/yyjj/yaml", "alias": "yaml" },
     { "path": "f4ah6o/yyjj/transform", "alias": "transform" }
-  ]
+  ],
+  "link": {
+    "js": {
+      "exports": [
+        "jsonc_to_yaml",
+        "yaml_to_jsonc",
+        "parse_jsonc",
+        "parse_yaml",
+        "print_jsonc",
+        "print_yaml",
+        "transform_jsonc_to_yaml",
+        "transform_yaml_to_jsonc"
+      ],
+      "use-js-builtin-string": true
+    }
+  }
 }

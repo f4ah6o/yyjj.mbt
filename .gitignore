@@ -2,3 +2,16 @@
 target/
 .mooncakes/
 .moonagent/
+
+# Build outputs
+dist/
+*.mbti
+
+# Dependencies
+node_modules/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
