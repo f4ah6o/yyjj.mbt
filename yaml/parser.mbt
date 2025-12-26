@@ -150,20 +150,45 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
     Some(Dash) => self.parse_block_sequence(leading)
     Some(PlainScalar(_)) | Some(SingleQuotedScalar(_)) | Some(DoubleQuotedScalar(_)) =>
       self.parse_scalar_or_mapping(leading)
+    // YAML 1.1 keywords can be mapping keys - check for colon after them
     Some(NullValue) => {
       let _ = self.advance()
-      let trailing = self.collect_trailing()
-      Ok(YNull(@common.Trivia::new(leading, trailing)))
+      // Check if this is a mapping key
+      while self.peek_kind() is Some(Whitespace(_)) {
+        let _ = self.advance()
+      }
+      if self.peek_kind() == Some(Colon) {
+        self.parse_mapping_with_first_key("null", Plain, leading)
+      } else {
+        let trailing = self.collect_trailing()
+        Ok(YNull(@common.Trivia::new(leading, trailing)))
+      }
     }
     Some(TrueValue) => {
       let _ = self.advance()
-      let trailing = self.collect_trailing()
-      Ok(YBool(true, @common.Trivia::new(leading, trailing)))
+      // Check if this is a mapping key (e.g., "on:" in GitHub Actions)
+      while self.peek_kind() is Some(Whitespace(_)) {
+        let _ = self.advance()
+      }
+      if self.peek_kind() == Some(Colon) {
+        self.parse_mapping_with_first_key("true", Plain, leading)
+      } else {
+        let trailing = self.collect_trailing()
+        Ok(YBool(true, @common.Trivia::new(leading, trailing)))
+      }
     }
     Some(FalseValue) => {
       let _ = self.advance()
-      let trailing = self.collect_trailing()
-      Ok(YBool(false, @common.Trivia::new(leading, trailing)))
+      // Check if this is a mapping key
+      while self.peek_kind() is Some(Whitespace(_)) {
+        let _ = self.advance()
+      }
+      if self.peek_kind() == Some(Colon) {
+        self.parse_mapping_with_first_key("false", Plain, leading)
+      } else {
+        let trailing = self.collect_trailing()
+        Ok(YBool(false, @common.Trivia::new(leading, trailing)))
+      }
     }
     Some(LBracket) => self.parse_flow_sequence(leading)
     Some(LBrace) => self.parse_flow_mapping(leading)
@@ -193,6 +218,9 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
     }
     Some(Eof) =>
       Ok(YNull(@common.Trivia::new(leading, []))) // Empty document
+    // Dedent or Newline without value means implicit null
+    Some(Dedent(_)) | Some(Newline) =>
+      Ok(YNull(@common.Trivia::new(leading, [])))
     Some(kind) =>
       Err(
         @common.ParseError::unexpected_token(
@@ -218,7 +246,11 @@ fn Parser::parse_scalar_or_mapping(
   }
   let _ = self.advance()
   // Check if this is a mapping (followed by colon)
-  self.skip_trivia()
+  // Only skip whitespace on the same line, NOT newlines
+  // This is critical for multi-key mappings
+  while self.peek_kind() is Some(Whitespace(_)) {
+    let _ = self.advance()
+  }
   if self.peek_kind() == Some(Colon) {
     // This is a mapping
     self.parse_mapping_with_first_key(scalar, style, leading)
@@ -252,20 +284,31 @@ fn Parser::parse_mapping_with_first_key(
     // Parse value
     self.skip_trivia()
     // Handle indent for block value
-    if self.peek_kind() is Some(Indent(_)) {
+    let has_indent = if self.peek_kind() is Some(Indent(_)) {
       let _ = self.advance()
       self.skip_trivia()
+      true
+    } else {
+      false
     }
-    let value = match self.parse_value() {
-      Ok(v) => v
-      Err(e) => return Err(e)
+    // If there's no indent and we see a potential key followed by colon,
+    // then this key has no value (implicit null) and the next thing is a sibling key
+    let value = if not(has_indent) && self.is_sibling_key_ahead() {
+      // This is a sibling key, not a value - return null for current key
+      YNull(@common.Trivia::empty())
+    } else {
+      match self.parse_value() {
+        Ok(v) => v
+        Err(e) => return Err(e)
+      }
     }
     pairs.push(YKeyValue::new(key_node, key_trivia, value))
-    // Handle dedent
+    // Handle dedent - if we see a Dedent, this mapping is complete
     self.skip_trivia()
-    while self.peek_kind() is Some(Dedent(_)) {
+    if self.peek_kind() is Some(Dedent(_)) {
+      // Consume the dedent and exit this mapping
       let _ = self.advance()
-      self.skip_trivia()
+      break
     }
     // Check for next key
     self.skip_trivia()
@@ -287,6 +330,28 @@ fn Parser::parse_mapping_with_first_key(
       Some(DoubleQuotedScalar(s)) => {
         key = s
         key_style = DoubleQuoted
+        key_leading = self.flush_leading()
+        let _ = self.advance()
+        self.skip_trivia()
+      }
+      // YAML 1.1 booleans and null can also be keys (e.g., "on:" in GitHub Actions)
+      Some(TrueValue) => {
+        key = "true"
+        key_style = Plain
+        key_leading = self.flush_leading()
+        let _ = self.advance()
+        self.skip_trivia()
+      }
+      Some(FalseValue) => {
+        key = "false"
+        key_style = Plain
+        key_leading = self.flush_leading()
+        let _ = self.advance()
+        self.skip_trivia()
+      }
+      Some(NullValue) => {
+        key = "null"
+        key_style = Plain
         key_leading = self.flush_leading()
         let _ = self.advance()
         self.skip_trivia()
@@ -438,6 +503,38 @@ fn token_kind_name(kind : TokenKind) -> String {
     Eof => "end of input"
     Invalid(msg) => msg
   }
+}
+
+///|
+fn is_potential_key(kind : TokenKind?) -> Bool {
+  match kind {
+    Some(PlainScalar(_)) | Some(SingleQuotedScalar(_)) | Some(DoubleQuotedScalar(_)) |
+    Some(TrueValue) | Some(FalseValue) | Some(NullValue) => true
+    _ => false
+  }
+}
+
+///|
+/// Check if the next tokens form a sibling key (scalar/keyword followed by colon)
+/// This is used to detect empty values like "workflow_dispatch:" followed by "push:"
+fn Parser::is_sibling_key_ahead(self : Parser) -> Bool {
+  // Look at current position
+  let start_pos = self.pos
+  // Check if we have a potential key
+  if not(is_potential_key(self.peek_kind())) {
+    return false
+  }
+  // Save position and look ahead
+  self.pos += 1
+  // Skip whitespace (but not newline)
+  while self.peek_kind() is Some(Whitespace(_)) {
+    self.pos += 1
+  }
+  // Check if followed by colon
+  let result = self.peek_kind() == Some(Colon)
+  // Restore position
+  self.pos = start_pos
+  result
 }
 
 ///|

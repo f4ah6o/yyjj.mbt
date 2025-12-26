@@ -53,3 +53,63 @@ test "yaml_parse_null" {
   let result = @yaml.parse("null")
   guard result is Ok(@yaml.YNull(_)) else { return }
 }
+
+///|
+test "yaml_parse_multi_key_mapping" {
+  let yaml = "name: test\non: push\njobs: build"
+  let result = @yaml.parse(yaml)
+  guard result is Ok(@yaml.YMapping(pairs, _)) else {
+    println("Parse failed or not a mapping")
+    return
+  }
+  // Note: "on" is parsed as TrueValue in YAML 1.1, so key becomes "true"
+  inspect(pairs.length(), content="3")
+}
+
+///|
+test "yaml_parse_nested_mapping" {
+  let yaml = "name: test\non:\n  push: main\njobs: build"
+  let result = @yaml.parse(yaml)
+  guard result is Ok(@yaml.YMapping(pairs, _)) else {
+    println("Parse failed or not a mapping")
+    return
+  }
+  // Should have 3 pairs: name, true (on), jobs
+  inspect(pairs.length(), content="3")
+  // The second pair (on -> true in YAML 1.1) should have a nested mapping
+  guard pairs[1].value is @yaml.YMapping(nested, _) else {
+    println("Expected nested mapping for 'on'")
+    return
+  }
+  inspect(nested.length(), content="1")
+}
+
+///|
+test "yaml_parse_sibling_keys_with_empty_values" {
+  // workflow_dispatch and push should be siblings, not nested
+  let yaml = "on:\n  workflow_dispatch:\n  push: main"
+  let result = @yaml.parse(yaml)
+  guard result is Ok(@yaml.YMapping(pairs, _)) else {
+    println("Parse failed or not a mapping")
+    return
+  }
+  // Should have 1 pair at top level (on/true)
+  inspect(pairs.length(), content="1")
+  // The value should be a mapping with 2 sibling keys
+  guard pairs[0].value is @yaml.YMapping(nested, _) else {
+    println("Expected nested mapping")
+    return
+  }
+  inspect(nested.length(), content="2")
+  // First sibling: workflow_dispatch with null value
+  guard nested[0].value is @yaml.YNull(_) else {
+    println("Expected null for workflow_dispatch")
+    return
+  }
+  // Second sibling: push with "main" value
+  guard nested[1].value is @yaml.YString(s, _, _) else {
+    println("Expected string for push")
+    return
+  }
+  inspect(s, content="main")
+}
