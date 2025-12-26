@@ -88,3 +88,39 @@ pub fn JsonNode::array(elements : Array[JsonNode]) -> JsonNode {
 pub fn JsonNode::object(properties : Array[JProperty]) -> JsonNode {
   JObject(properties, @common.Trivia::empty())
 }
+
+///|
+/// Create a null node with trivia
+pub fn JsonNode::null_with_trivia(trivia : @common.Trivia) -> JsonNode {
+  JNull(trivia)
+}
+
+///|
+/// Create a boolean node with trivia
+pub fn JsonNode::bool_with_trivia(value : Bool, trivia : @common.Trivia) -> JsonNode {
+  JBool(value, trivia)
+}
+
+///|
+/// Create a number node with trivia
+pub fn JsonNode::number_with_trivia(value : String, trivia : @common.Trivia) -> JsonNode {
+  JNumber(value, trivia)
+}
+
+///|
+/// Create a string node with trivia
+pub fn JsonNode::string_with_trivia(value : String, trivia : @common.Trivia) -> JsonNode {
+  JString(value, trivia)
+}
+
+///|
+/// Create an array node with trivia
+pub fn JsonNode::array_with_trivia(elements : Array[JsonNode], trivia : @common.Trivia) -> JsonNode {
+  JArray(elements, trivia)
+}
+
+///|
+/// Create an object node with trivia
+pub fn JsonNode::object_with_trivia(properties : Array[JProperty], trivia : @common.Trivia) -> JsonNode {
+  JObject(properties, trivia)
+}

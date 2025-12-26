@@ -4,7 +4,7 @@ test "parse_simple_object" {
   guard result is Ok(node) else { return }
   guard node is @jsonc.JObject(props, _) else { return }
   inspect(props.length(), content="1")
-  inspect(props[0].key, content="\"key\"")
+  inspect(props[0].key, content="key")
 }
 
 ///|
@@ -93,8 +93,8 @@ test "parse_keywords" {
 test "parse_numbers" {
   let result1 = @jsonc.parse("123")
   guard result1 is Ok(@jsonc.JNumber(n, _)) else { return }
-  inspect(n, content="\"123\"")
+  inspect(n, content="123")
   let result2 = @jsonc.parse("-45.67e8")
   guard result2 is Ok(@jsonc.JNumber(n2, _)) else { return }
-  inspect(n2, content="\"-45.67e8\"")
+  inspect(n2, content="-45.67e8")
 }
