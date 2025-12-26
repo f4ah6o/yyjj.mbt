@@ -35,7 +35,7 @@ jobs:
       - name: Setup MoonBit
         run: |
           echo "Installing MoonBit CLI..."
-          curl https://cli.moonbitlang.com/install.sh | sh
+          curl -fsSL https://cli.moonbitlang.com/install.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Log environment info
