@@ -3,64 +3,61 @@
 ## Date
 2025-12-26
 
-## Context
-The YAML parser was not correctly parsing multi-key mappings and nested structures. When parsing a GitHub Actions YAML file, only the first key (`name`) was being parsed, resulting in output like `{ "name": "Copilot Setup Steps" }` instead of the full structure.
+## Current Status
+**42 out of 44 tests passing**
 
-## Root Causes Identified
+The YAML parser has been significantly improved and can now handle:
+- Multi-key mappings at the same level ✓
+- YAML 1.1 boolean keywords (`on`, `off`, `yes`, `no`) as mapping keys ✓
+- Empty values (implicit null) followed by sibling keys ✓
+- Nested mappings with sequences ✓
+- Deeply nested structures in many cases ✓
 
-### 1. Lexer: `at_line_start` flag not reset
-- `handle_indent()` in `lexer.mbt` was not resetting `at_line_start = false` after processing indentation
-- This caused `Indent(2)` to be immediately followed by `Dedent(0)` in the token stream
+## Known Limitations
+The parser still has issues with **deeply nested structures where a sequence is followed by sibling keys at the same level**. For example:
 
-### 2. Parser: `skip_trivia()` consuming newlines
-- `parse_scalar_or_mapping()` was using `skip_trivia()` which consumed newlines
-- This caused the parser to lose track of sibling keys at the same indentation level
+```yaml
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - file.yml
+  pull_request:    # This key is missed after parsing the paths sequence
+    paths:
+      - file.yml
+```
 
-### 3. YAML 1.1 keywords as mapping keys
-- `on`, `off`, `yes`, `no` are boolean keywords in YAML 1.1
-- These were tokenized as `TrueValue`/`FalseValue` and not recognized as potential mapping keys
-- GitHub Actions uses `on:` as a top-level key, which was being parsed incorrectly
-
-### 4. Empty values (implicit null)
-- When a key has no value before the next sibling key (e.g., `workflow_dispatch:` followed by `push:`)
-- Parser couldn't distinguish between empty value + sibling key vs nested mapping
+In this case, `pull_request` is not being parsed as a sibling of `push` because the parser's dedent handling is not correctly preserving the parent mapping's continuation state.
 
 ## Fixes Applied
 
-### lexer.mbt
-```moonbit
-fn Lexer::handle_indent(self : Lexer) -> Token? {
-  // ...
-  for i = 0; i < spaces; i = i + 1 {
-    let _ = self.advance()
-  }
-  // Mark that we're no longer at line start after processing indentation
-  self.at_line_start = false  // <-- ADDED
-  // ...
-}
-```
+### 1. Lexer: Multi-level dedent emission
+Fixed `handle_indent()` in `lexer.mbt` to emit multiple dedent tokens when dedenting across multiple indentation levels.
 
-### parser.mbt
-1. Changed `parse_scalar_or_mapping()` to only skip whitespace, not newlines
-2. Added handling for TrueValue/FalseValue/NullValue as potential mapping keys
-3. Added `is_sibling_key_ahead()` helper to detect empty values
-4. Modified `parse_mapping_with_first_key()` to use look-ahead for implicit null detection
+Previously, when going from indent 6 to indent 2, only `Dedent(4)` would be emitted. Now it correctly emits `Dedent(4)` and `Dedent(2)` in sequence.
 
-### parser_test.mbt
-Added three new tests:
-- `yaml_parse_multi_key_mapping` - tests multiple keys at same level
-- `yaml_parse_nested_mapping` - tests nested structure
-- `yaml_parse_sibling_keys_with_empty_values` - tests implicit null values
+The key change is keeping `at_line_start = true` after emitting a dedent if `to_level > spaces`, allowing the lexer to continue processing more dedents.
 
-## Current Status
-- All 39 tests pass
-- Multi-key mappings at same level now parse correctly
-- YAML 1.1 boolean keywords can be used as mapping keys
-- Empty values (implicit null) followed by sibling keys work correctly
+### 2. Parser: Indented mapping support
+- Added `parse_indented_mapping()` function to parse indented block mappings
+- Added Indent case in `parse_value()` to detect and handle indented sequences/mappings
+- Track `base_indent` level to determine when to exit nested mappings
 
-## Known Issues
-Complex deeply nested structures still have some nesting issues. For example, in the GitHub Actions file, `push`, `pull_request`, and `jobs` may not be correctly nested at their proper levels.
+### 3. Parser: Dedent handling improvements
+- Modified dedent handling in `parse_mapping_with_first_key` to preserve parent-level dedents
+- Added logic to detect sibling keys after dedenting
+- Fixed exit condition to use `n <= base_indent` for consistency
+
+## Test Results
+- **Total tests**: 44
+- **Passing**: 42
+- **Failing**: 2 (`yaml_parse_nested_mapping`, `yaml_parse_github_actions_structure`)
+
+Both failing tests expect 3 key-value pairs but only find 2, indicating the dedent handling logic still needs refinement.
 
 ## Next Steps
-1. Further investigation into indentation level tracking for complex nested structures
-2. Consider explicit indentation tracking in the parser state
+The current issue is that `parse_indented_mapping` exits too early when it sees a dedent at its `base_indent` level. The parser should:
+1. Continue parsing when dedenting TO the current level (not past it)
+2. Only exit when dedenting PAST the current level
+
+This requires adjusting the exit condition from `n <= base_indent` to `n < base_indent` in the correct locations.
