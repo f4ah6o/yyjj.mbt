@@ -32,12 +32,19 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
 
+      - name: Setup MoonBit
+        run: |
+          echo "Installing MoonBit CLI..."
+          curl https://cli.moonbitlang.com/install.sh | sh
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
       - name: Log environment info
         run: |
           echo "=== Environment ==="
           echo "Node version: $(node --version)"
           echo "npm version: $(npm --version)"
           echo "pnpm version: $(pnpm --version)"
+          echo "MoonBit version: $(moon --version)"
           echo "Release tag: ${{ github.event.release.tag_name }}"
           echo "=== End Environment ==="
 
