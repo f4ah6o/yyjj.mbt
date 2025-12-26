@@ -1,9 +1,9 @@
 {
   "name": "yyjj",
-  "version": "0.1.0",
+  "version": "2025.12.0",
   "description": "JSONC⇔YAML converter library with comment preservation, powered by MoonBit",
   "type": "module",
-  "author": "Your Name <your.email@example.com>",
+  "author": "f12o",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
