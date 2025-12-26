@@ -8,6 +8,31 @@ pub enum YamlScalarStyle {
   Folded // > block
 } derive(Eq, Show)
 
+///| Factory function for Plain style
+pub fn YamlScalarStyle::plain() -> YamlScalarStyle {
+  Plain
+}
+
+///| Factory function for SingleQuoted style
+pub fn YamlScalarStyle::single_quoted() -> YamlScalarStyle {
+  SingleQuoted
+}
+
+///| Factory function for DoubleQuoted style
+pub fn YamlScalarStyle::double_quoted() -> YamlScalarStyle {
+  DoubleQuoted
+}
+
+///| Factory function for Literal style
+pub fn YamlScalarStyle::literal() -> YamlScalarStyle {
+  Literal
+}
+
+///| Factory function for Folded style
+pub fn YamlScalarStyle::folded() -> YamlScalarStyle {
+  Folded
+}
+
 ///|
 /// YAML CST node types
 pub enum YamlNode {
@@ -88,4 +113,40 @@ pub fn YamlNode::sequence(elements : Array[YamlNode]) -> YamlNode {
 /// Create a mapping node
 pub fn YamlNode::mapping(pairs : Array[YKeyValue]) -> YamlNode {
   YMapping(pairs, @common.Trivia::empty())
+}
+
+///|
+/// Create a null node with trivia
+pub fn YamlNode::null_with_trivia(trivia : @common.Trivia) -> YamlNode {
+  YNull(trivia)
+}
+
+///|
+/// Create a boolean node with trivia
+pub fn YamlNode::bool_with_trivia(value : Bool, trivia : @common.Trivia) -> YamlNode {
+  YBool(value, trivia)
+}
+
+///|
+/// Create a number node with trivia
+pub fn YamlNode::number_with_trivia(value : String, trivia : @common.Trivia) -> YamlNode {
+  YNumber(value, trivia)
+}
+
+///|
+/// Create a string node with trivia
+pub fn YamlNode::string_with_trivia(value : String, style : YamlScalarStyle, trivia : @common.Trivia) -> YamlNode {
+  YString(value, style, trivia)
+}
+
+///|
+/// Create a sequence node with trivia
+pub fn YamlNode::sequence_with_trivia(elements : Array[YamlNode], trivia : @common.Trivia) -> YamlNode {
+  YSequence(elements, trivia)
+}
+
+///|
+/// Create a mapping node with trivia
+pub fn YamlNode::mapping_with_trivia(pairs : Array[YKeyValue], trivia : @common.Trivia) -> YamlNode {
+  YMapping(pairs, trivia)
 }
