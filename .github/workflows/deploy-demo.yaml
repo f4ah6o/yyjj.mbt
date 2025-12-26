@@ -30,22 +30,15 @@ jobs:
         with:
           node-version: '24'
           cache: 'pnpm'
-
-      - name: Setup MoonBit
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install.sh | bash
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+          cache-dependency-path: examples/pnpm-lock.yaml
 
       - name: Install dependencies
+        working-directory: examples
         run: pnpm install --frozen-lockfile
 
-      - name: Build yyjj library
-        run: |
-          export PATH="$HOME/.moon/bin:$PATH"
-          pnpm build
-
       - name: Build demo
-        run: pnpm -F yyjj-demo build
+        working-directory: examples
+        run: pnpm build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
