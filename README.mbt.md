@@ -2,6 +2,8 @@
 
 > JSONC ⇔ YAML converter library with comment preservation
 
+> Don't turn YAML into .yml, or I'll turn JSON into .jsn!
+
 [![npm version](https://img.shields.io/npm/v/yyjj.svg)](https://www.npmjs.com/package/yyjj)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
