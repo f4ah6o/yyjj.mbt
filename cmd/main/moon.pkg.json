@@ -9,5 +9,10 @@
       "path": "moonbitlang/x/fs",
       "alias": "fs"
     }
-  ]
+  ],
+  "link": {
+    "js": {
+      "format": "esm"
+    }
+  }
 }

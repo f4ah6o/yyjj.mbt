@@ -40,7 +40,7 @@ fn escape_single_quoted(s : String) -> String {
   // In single-quoted YAML, only '' is an escape
   let buf = StringBuilder::new()
   for i = 0; i < s.length(); i = i + 1 {
-    let ch = Char::from_int(s[i].to_int())
+    let ch = s[i].to_int().unsafe_to_char()
     if ch == '\'' {
       buf.write_string("''")
     } else {
@@ -54,7 +54,7 @@ fn escape_single_quoted(s : String) -> String {
 fn escape_double_quoted(s : String) -> String {
   let buf = StringBuilder::new()
   for i = 0; i < s.length(); i = i + 1 {
-    let ch = Char::from_int(s[i].to_int())
+    let ch = s[i].to_int().unsafe_to_char()
     match ch {
       '"' => buf.write_string("\\\"")
       '\\' => buf.write_string("\\\\")

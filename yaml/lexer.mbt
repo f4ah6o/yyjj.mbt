@@ -34,7 +34,7 @@ fn Lexer::is_eof(self : Lexer) -> Bool {
 
 ///|
 fn Lexer::char_at(self : Lexer, idx : Int) -> Char {
-  Char::from_int(self.source[idx].to_int())
+  self.source[idx].to_int().unsafe_to_char()
 }
 
 ///|
@@ -551,7 +551,7 @@ fn is_plain_scalar_char(c : Char) -> Bool {
 fn is_blank_line(lexer : Lexer) -> Bool {
   let mut idx = lexer.pos
   while idx < lexer.source.length() {
-    let ch = Char::from_int(lexer.source[idx].to_int())
+    let ch = lexer.source[idx].to_int().unsafe_to_char()
     if ch == '\n' || ch == '\r' {
       return true
     }

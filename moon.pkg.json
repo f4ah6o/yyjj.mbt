@@ -3,8 +3,7 @@
     { "path": "f4ah6o/yyjj/common", "alias": "common" },
     { "path": "f4ah6o/yyjj/jsonc", "alias": "jsonc" },
     { "path": "f4ah6o/yyjj/yaml", "alias": "yaml" },
-    { "path": "f4ah6o/yyjj/transform", "alias": "transform" },
-    { "path": "moonbitlang/quickcheck", "alias": "qc" }
+    { "path": "f4ah6o/yyjj/transform", "alias": "transform" }
   ],
   "link": {
     "js": {
@@ -18,7 +17,8 @@
         "transform_jsonc_to_yaml",
         "transform_yaml_to_jsonc"
       ],
-      "use-js-builtin-string": true
+      "use-js-builtin-string": true,
+      "format": "esm"
     }
   }
 }

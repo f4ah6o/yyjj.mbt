@@ -8,7 +8,6 @@ pub enum Doc {
   Concat(Doc, Doc) // Sequential composition
   Nest(Int, Doc) // Increase indent
   Group(Doc) // Try flat first, then break
-  FlatAlt(Doc, Doc) // Alternative for flat vs broken
 } derive(Eq, Show)
 
 ///|

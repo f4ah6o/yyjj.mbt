@@ -150,3 +150,15 @@ pub fn YamlNode::sequence_with_trivia(elements : Array[YamlNode], trivia : @comm
 pub fn YamlNode::mapping_with_trivia(pairs : Array[YKeyValue], trivia : @common.Trivia) -> YamlNode {
   YMapping(pairs, trivia)
 }
+
+///|
+/// Create an alias node with trivia
+pub fn YamlNode::alias_with_trivia(name : String, trivia : @common.Trivia) -> YamlNode {
+  YAlias(name, trivia)
+}
+
+///|
+/// Create an anchor node
+pub fn YamlNode::anchor(name : String, inner : YamlNode) -> YamlNode {
+  YAnchor(name, inner)
+}

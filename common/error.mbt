@@ -9,8 +9,6 @@ pub enum ParseErrorKind {
   UnclosedString
   UnclosedComment
   UnresolvedAlias(String)
-  DuplicateAnchor(String)
-  InvalidUtf8
   TrailingContent
 } derive(Eq, Show)
 

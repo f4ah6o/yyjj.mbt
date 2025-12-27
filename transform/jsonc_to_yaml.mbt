@@ -57,7 +57,7 @@ fn needs_quoting(s : String) -> Bool {
   }
   // Check for special characters
   for i = 0; i < s.length(); i = i + 1 {
-    let ch = Char::from_int(s[i].to_int())
+    let ch = s[i].to_int().unsafe_to_char()
     if ch == ':' ||
       ch == '#' ||
       ch == '[' ||
@@ -81,7 +81,7 @@ fn needs_quoting(s : String) -> Bool {
     }
   }
   // Check if starts with special character
-  let first = Char::from_int(s[0].to_int())
+  let first = s[0].to_int().unsafe_to_char()
   if first == '-' || first == '?' || first == ' ' || first == '\t' {
     return true
   }
@@ -122,7 +122,7 @@ fn split_lines(s : String) -> Array[String] {
   let lines : Array[String] = []
   let buf = StringBuilder::new()
   for i = 0; i < s.length(); i = i + 1 {
-    let ch = Char::from_int(s[i].to_int())
+    let ch = s[i].to_int().unsafe_to_char()
     if ch == '\n' {
       lines.push(buf.to_string())
       buf.reset()

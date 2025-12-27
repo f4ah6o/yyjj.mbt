@@ -64,11 +64,6 @@ fn render_items(
           items.push((indent, Break, d))
         }
       }
-      FlatAlt(flat, broken) =>
-        match mode {
-          Flat => items.push((indent, mode, flat))
-          Break => items.push((indent, mode, broken))
-        }
     }
   }
 }
@@ -97,9 +92,6 @@ fn fits(width : Int, items : Array[(Int, Mode, Doc)]) -> Bool {
       }
       Nest(i, d) => items.push((indent + i, mode, d))
       Group(d) => items.push((indent, mode, d))
-      FlatAlt(flat, _) =>
-        // In fits check, we always use flat
-        items.push((indent, mode, flat))
     }
     if remaining < 0 {
       return false

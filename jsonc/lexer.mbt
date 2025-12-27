@@ -28,7 +28,7 @@ fn Lexer::is_eof(self : Lexer) -> Bool {
 ///|
 /// Get char at position
 fn Lexer::char_at(self : Lexer, idx : Int) -> Char {
-  Char::from_int(self.source[idx].to_int())
+  self.source[idx].to_int().unsafe_to_char()
 }
 
 ///|
@@ -197,7 +197,7 @@ fn Lexer::lex_string(self : Lexer, start : @common.Pos) -> Token {
                   }
                 }
                 match parse_hex(hex) {
-                  Some(code) => buf.write_char(Char::from_int(code))
+                  Some(code) => buf.write_char(code.unsafe_to_char())
                   None =>
                     return Token::new(
                       Invalid("invalid unicode escape"),
@@ -356,7 +356,7 @@ fn Lexer::lex_keyword(
 ) -> Token {
   for i = 0; i < expected.length(); i = i + 1 {
     match self.peek() {
-      Some(c) if c == Char::from_int(expected[i].to_int()) => {
+      Some(c) if c == expected[i].to_int().unsafe_to_char() => {
         let _ = self.advance()
 
       }
@@ -411,7 +411,7 @@ fn is_hex_digit(c : Char) -> Bool {
 fn parse_hex(s : String) -> Int? {
   let mut result = 0
   for i = 0; i < s.length(); i = i + 1 {
-    let c = Char::from_int(s[i].to_int())
+    let c = s[i].to_int().unsafe_to_char()
     let digit = if c >= '0' && c <= '9' {
       c.to_int() - '0'.to_int()
     } else if c >= 'a' && c <= 'f' {

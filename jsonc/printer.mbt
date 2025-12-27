@@ -102,7 +102,7 @@ fn escape_json_string(s : String) -> String {
   let buf = StringBuilder::new()
   buf.write_char('"')
   for i = 0; i < s.length(); i = i + 1 {
-    let ch = Char::from_int(s[i].to_int())
+    let ch = s[i].to_int().unsafe_to_char()
     match ch {
       '"' => buf.write_string("\\\"")
       '\\' => buf.write_string("\\\\")
@@ -126,17 +126,17 @@ fn escape_json_string(s : String) -> String {
 fn int_to_hex4(n : Int) -> String {
   let hex_chars = "0123456789abcdef"
   let buf = StringBuilder::new()
-  buf.write_char(Char::from_int(hex_chars[(n >> 12) & 0xf].to_int()))
-  buf.write_char(Char::from_int(hex_chars[(n >> 8) & 0xf].to_int()))
-  buf.write_char(Char::from_int(hex_chars[(n >> 4) & 0xf].to_int()))
-  buf.write_char(Char::from_int(hex_chars[n & 0xf].to_int()))
+  buf.write_char(hex_chars[(n >> 12) & 0xf].to_int().unsafe_to_char())
+  buf.write_char(hex_chars[(n >> 8) & 0xf].to_int().unsafe_to_char())
+  buf.write_char(hex_chars[(n >> 4) & 0xf].to_int().unsafe_to_char())
+  buf.write_char(hex_chars[n & 0xf].to_int().unsafe_to_char())
   buf.to_string()
 }
 
 ///|
 /// Print JSONC to string
 pub fn print(node : JsonNode, width? : Int) -> String {
-  let w = width.or(80)
+  let w = width.unwrap_or(80)
   let doc = to_doc(node)
   @pretty.render(doc, w)
 }
