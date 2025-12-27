@@ -44,3 +44,42 @@ test "round_trip_jsonc_to_yaml" {
   // Should contain the same structure
   inspect(jsonc.contains("items"), content="true")
 }
+
+///|
+test "yaml_to_jsonc_with_comments" {
+  let yaml =
+    #|# This is a comment
+    #|name: test
+    #|value: 42  # trailing comment
+  let result = @yyjj.yaml_to_jsonc(yaml)
+  guard result is Ok(jsonc) else { return }
+  println("YAML input:")
+  println(yaml)
+  println("\nJSONC output:")
+  println(jsonc)
+  // Should preserve comments
+  inspect(jsonc.contains("//"), content="true")
+}
+
+///|
+test "yaml_to_jsonc_nested_comments" {
+  let yaml =
+    #|# Server settings
+    #|server: localhost
+    #|port: 8080
+    #|# Database connection
+    #|database:
+    #|  host: db.example.com
+    #|  # Database name
+    #|  name: myapp
+  let result = @yyjj.yaml_to_jsonc(yaml)
+  guard result is Ok(jsonc) else { return }
+  println("YAML with nested comments:")
+  println(yaml)
+  println("\nJSONC output:")
+  println(jsonc)
+  // Should preserve all comments including nested ones
+  inspect(jsonc.contains("Server settings"), content="true")
+  inspect(jsonc.contains("Database connection"), content="true")
+  inspect(jsonc.contains("Database name"), content="true")
+}

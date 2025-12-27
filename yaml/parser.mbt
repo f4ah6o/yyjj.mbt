@@ -368,7 +368,8 @@ fn Parser::parse_mapping_with_first_key(
       if first_key == "name" || first_key == "true" || first_key == "on" {
         println("parse_mapping_with_first_key: calling parse_indented_mapping for key=\{key}")
       }
-      match self.parse_indented_mapping([]) {
+      let leading = self.flush_leading()
+      match self.parse_indented_mapping(leading) {
         Ok(v) => v
         Err(e) => return Err(e)
       }
