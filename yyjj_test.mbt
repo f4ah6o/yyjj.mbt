@@ -82,4 +82,82 @@ test "yaml_to_jsonc_nested_comments" {
   inspect(jsonc.contains("Server settings"), content="true")
   inspect(jsonc.contains("Database connection"), content="true")
   inspect(jsonc.contains("Database name"), content="true")
+  // Critical: database should be an object, not null
+  inspect(jsonc.contains("\"database\": null"), content="false")
+  // Critical: host should be inside database object
+  inspect(jsonc.contains("\"database\": {"), content="true")
+  // Critical: nested comment must be preserved
+  inspect(jsonc.contains("// Database name"), content="true")
+}
+
+///|
+test "yaml_to_jsonc_user_case" {
+  // User's actual YAML input - properly indented
+  let yaml =
+    #|# サーバー設定
+    #|server: localhost
+    #|port: 8080
+    #|# データベース接続
+    #|database:
+    #|  host: db.example.com
+    #|  # foo
+    #|  name: myapp
+  let result = @yyjj.yaml_to_jsonc(yaml)
+  guard result is Ok(jsonc) else { return }
+  println("User YAML:")
+  println(yaml)
+  println("\nJSONC output:")
+  println(jsonc)
+  // Critical assertions - these must pass
+  // 1. database must be an object, not null
+  assert_false(jsonc.contains("\"database\": null"))
+  // 2. database must contain nested object
+  assert_true(jsonc.contains("\"database\":"))
+  assert_true(jsonc.contains("\"host\":"))
+  assert_true(jsonc.contains("\"name\":"))
+  // 3. All comments must be preserved
+  assert_true(jsonc.contains("サーバー設定"))
+  assert_true(jsonc.contains("データベース接続"))
+  assert_true(jsonc.contains("foo"))
+}
+
+///|
+test "roundtrip_jsonc_yaml_jsonc_with_comments" {
+  // Demo page default JSONC
+  let original_jsonc =
+    #|{
+    #|  // サーバー設定
+    #|  "server": "localhost",
+    #|  "port": 8080,
+    #|  /* データベース接続 */
+    #|  "database": {
+    #|    "host": "db.example.com",
+    #|    "name": "myapp"
+    #|  }
+    #|}
+
+  // JSONC -> YAML
+  let yaml_result = @yyjj.jsonc_to_yaml(original_jsonc)
+  guard yaml_result is Ok(yaml) else { return }
+  println("Original JSONC:")
+  println(original_jsonc)
+  println("\nConverted YAML:")
+  println(yaml)
+
+  // YAML -> JSONC
+  let jsonc_result = @yyjj.yaml_to_jsonc(yaml)
+  guard jsonc_result is Ok(jsonc) else { return }
+  println("\nBack to JSONC:")
+  println(jsonc)
+
+  // Assertions
+  // 1. database must not be null
+  assert_false(jsonc.contains("\"database\": null"))
+  // 2. Structure must be preserved
+  assert_true(jsonc.contains("\"database\":"))
+  assert_true(jsonc.contains("\"host\":"))
+  assert_true(jsonc.contains("\"name\":"))
+  // 3. Comments must be preserved
+  assert_true(jsonc.contains("サーバー設定"))
+  assert_true(jsonc.contains("データベース接続"))
 }

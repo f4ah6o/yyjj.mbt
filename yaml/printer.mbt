@@ -111,8 +111,9 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
       _ => false
     }
     if is_nested {
+      // nest must wrap hardline for indentation to apply
       docs.push(
-        @pretty.concat([key_leading, key_doc, @pretty.text(":"), key_trailing, @pretty.hardline(), @pretty.nest(2, value_doc)]),
+        @pretty.concat([key_leading, key_doc, @pretty.text(":"), key_trailing, @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc]))]),
       )
     } else {
       docs.push(@pretty.concat([key_leading, key_doc, @pretty.text(":"), key_trailing, @pretty.text(" "), value_doc]))
