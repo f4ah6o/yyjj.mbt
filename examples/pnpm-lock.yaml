@@ -33,8 +33,8 @@ importers:
         specifier: ^10.26.5
         version: 10.28.1
       yyjj:
-        specifier: ^2025.12.2
-        version: 2025.12.2
+        specifier: ^2025.12.3
+        version: 2025.12.3
     devDependencies:
       '@preact/preset-vite':
         specifier: ^2.10.2
@@ -808,8 +808,8 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
-  yyjj@2025.12.2:
-    resolution: {integrity: sha512-mv+B3eBUho7KA69g3DRaQt8+gqlQutekr7d0o/U8AO8aJpQG6QaTUOsKtIptY0qbpNIO1+1mEGX/fjor2nWxfg==}
+  yyjj@2025.12.3:
+    resolution: {integrity: sha512-jTHUUtnzXVAdKTebLu0ld4T742ZIvxD38tO0WMgGh3HXwCSFcChhTt8KFXs5Si5BLtEjkG3t2FvAtumuWna0Zw==}
 
 snapshots:
 
@@ -1512,4 +1512,4 @@ snapshots:
 
   yallist@3.1.1: {}
 
-  yyjj@2025.12.2: {}
+  yyjj@2025.12.3: {}
