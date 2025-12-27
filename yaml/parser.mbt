@@ -8,6 +8,59 @@ pub struct Parser {
 }
 
 ///|
+/// Check if a string is a valid YAML number
+fn is_yaml_number(s : String) -> Bool {
+  if s.is_empty() {
+    return false
+  }
+  // Special YAML float values
+  if s == ".inf" || s == "-.inf" || s == "+.inf" || s == ".nan" {
+    return true
+  }
+  // Try to parse as a number
+  let chars = s.iter().collect()
+  let mut i = 0
+  // Optional leading sign
+  if i < chars.length() && (chars[i] == '-' || chars[i] == '+') {
+    i += 1
+  }
+  // Need at least one digit
+  if i >= chars.length() {
+    return false
+  }
+  // Integer part
+  let mut has_digits = false
+  while i < chars.length() && chars[i] >= '0' && chars[i] <= '9' {
+    has_digits = true
+    i += 1
+  }
+  // Optional decimal part
+  if i < chars.length() && chars[i] == '.' {
+    i += 1
+    while i < chars.length() && chars[i] >= '0' && chars[i] <= '9' {
+      has_digits = true
+      i += 1
+    }
+  }
+  // Optional exponent part
+  if i < chars.length() && (chars[i] == 'e' || chars[i] == 'E') {
+    i += 1
+    if i < chars.length() && (chars[i] == '-' || chars[i] == '+') {
+      i += 1
+    }
+    let exp_start = i
+    while i < chars.length() && chars[i] >= '0' && chars[i] <= '9' {
+      i += 1
+    }
+    // Exponent must have at least one digit
+    if i == exp_start {
+      return false
+    }
+  }
+  has_digits && i == chars.length()
+}
+
+///|
 pub fn Parser::from_source(source : String) -> Parser {
   let lexer = Lexer::new(source)
   let tokens = lexer.tokenize()
@@ -282,7 +335,13 @@ fn Parser::parse_scalar_or_mapping(
   } else {
     // Just a scalar
     let trailing = self.collect_trailing()
-    Ok(YString(scalar, style, @common.Trivia::new(leading, trailing)))
+    let trivia = @common.Trivia::new(leading, trailing)
+    // For plain scalars, check if it's a number
+    if style is Plain && is_yaml_number(scalar) {
+      Ok(YNumber(scalar, trivia))
+    } else {
+      Ok(YString(scalar, style, trivia))
+    }
   }
 }
 
