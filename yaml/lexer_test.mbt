@@ -83,10 +83,10 @@ test "yaml_lex_anchor_alias" {
 test "yaml_lex_keywords" {
   let lexer1 = @yaml.Lexer::new("true")
   let tokens1 = lexer1.tokenize()
-  guard tokens1[0].kind is @yaml.TrueValue else { return }
+  guard tokens1[0].kind is @yaml.TrueValue(_) else { return }
   let lexer2 = @yaml.Lexer::new("false")
   let tokens2 = lexer2.tokenize()
-  guard tokens2[0].kind is @yaml.FalseValue else { return }
+  guard tokens2[0].kind is @yaml.FalseValue(_) else { return }
   let lexer3 = @yaml.Lexer::new("null")
   let tokens3 = lexer3.tokenize()
   guard tokens3[0].kind is @yaml.NullValue else { return }
