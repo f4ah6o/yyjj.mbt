@@ -182,3 +182,58 @@ test "yaml_parse_copilot_setup_steps" {
   }
   inspect(jobs_value.length(), content="1")
 }
+
+///|
+/// Test parsing sequence items with multiple key-value pairs (GitHub Actions steps format)
+/// This is the main issue: steps array elements have multiple keys (name, uses, run)
+test "yaml_parse_sequence_item_with_multiple_keys" {
+  let yaml = (
+    #|steps:
+    #|  - name: checkout
+    #|    uses: actions/checkout@v5
+    #|  - name: setup
+    #|    run: hello
+  )
+  let result = @yaml.parse(yaml)
+  guard result is Ok(@yaml.YMapping(pairs, _)) else {
+    println("Parse failed or not a mapping")
+    return
+  }
+  inspect(pairs.length(), content="1")
+  // steps should be a sequence
+  guard pairs[0].value is @yaml.YSequence(steps, _) else {
+    println("Expected sequence for 'steps'")
+    return
+  }
+  // Should have 2 step items
+  inspect(steps.length(), content="2")
+  // First step should have 2 keys: name, uses
+  guard steps[0] is @yaml.YMapping(step1, _) else {
+    println("Expected mapping for first step")
+    return
+  }
+  inspect(step1.length(), content="2")
+  // Second step should have 2 keys: name, run
+  guard steps[1] is @yaml.YMapping(step2, _) else {
+    println("Expected mapping for second step")
+    return
+  }
+  inspect(step2.length(), content="2")
+}
+
+///|
+/// Test that 'on' keyword is preserved as a key (not converted to 'true')
+test "yaml_parse_on_keyword_as_key" {
+  let yaml = "on:\n  push: main"
+  let result = @yaml.parse(yaml)
+  guard result is Ok(@yaml.YMapping(pairs, _)) else {
+    println("Parse failed or not a mapping")
+    return
+  }
+  // The key should be "on", not "true"
+  guard pairs[0].key is @yaml.YString(key_str, _, _) else {
+    println("Expected string key")
+    return
+  }
+  inspect(key_str, content="on")
+}

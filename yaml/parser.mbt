@@ -242,27 +242,29 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
         Ok(YNull(@common.Trivia::new(leading, trailing)))
       }
     }
-    Some(TrueValue) => {
+    Some(TrueValue(original)) => {
       let _ = self.advance()
       // Check if this is a mapping key (e.g., "on:" in GitHub Actions)
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
       }
       if self.peek_kind() == Some(Colon) {
-        self.parse_mapping_with_first_key("true", Plain, leading)
+        // Preserve the original keyword (on, yes, true, etc.) as the key
+        self.parse_mapping_with_first_key(original, Plain, leading)
       } else {
         let trailing = self.collect_trailing()
         Ok(YBool(true, @common.Trivia::new(leading, trailing)))
       }
     }
-    Some(FalseValue) => {
+    Some(FalseValue(original)) => {
       let _ = self.advance()
       // Check if this is a mapping key
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
       }
       if self.peek_kind() == Some(Colon) {
-        self.parse_mapping_with_first_key("false", Plain, leading)
+        // Preserve the original keyword (off, no, false, etc.) as the key
+        self.parse_mapping_with_first_key(original, Plain, leading)
       } else {
         let trailing = self.collect_trailing()
         Ok(YBool(false, @common.Trivia::new(leading, trailing)))
@@ -302,7 +304,7 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
     Some(kind) =>
       Err(
         @common.ParseError::unexpected_token(
-          token_kind_name(kind),
+          kind.to_string(),
           self.current_span(),
         ),
       )
@@ -359,12 +361,7 @@ fn Parser::parse_mapping_with_first_key(
   // Track the base indentation level for this mapping
   // If we dedent to or below this level, the mapping is complete
   let mut base_indent : Int = -1  // -1 means not set yet
-  let mut loop_iter = 0
   while true {
-    loop_iter += 1
-    if first_key == "name" || first_key == "true" || first_key == "on" {
-      println("parse_mapping_with_first_key loop \{loop_iter}: first_key=\{first_key}, peek=" + debug_token_kind(self.peek_kind()) + ", base_indent=\{base_indent}")
-    }
     // Expect colon
     if self.peek_kind() != Some(Colon) {
       break
@@ -380,9 +377,6 @@ fn Parser::parse_mapping_with_first_key(
       let _ = self.advance()
       if base_indent == -1 {
         base_indent = n
-      }
-      if first_key == "name" || first_key == "true" || first_key == "on" {
-        println("parse_mapping_with_first_key: consumed Indent(\{n}), set base_indent=\{base_indent}, key=\{key}")
       }
       self.skip_trivia()
       true
@@ -408,49 +402,26 @@ fn Parser::parse_mapping_with_first_key(
       false
     }
 
-    // Debug logging
-    if first_key == "name" || first_key == "true" || first_key == "on" {
-      println("parse_mapping: key=\{first_key}, has_indent=\{has_indent}, has_key_after=\{has_key_after}, peek_kind=" + debug_token_kind(self.peek_kind()) + ", self.pos=\{self.pos}")
-    }
-
     // If there's no indent and we see a potential key followed by colon,
     // then this key has no value (implicit null) and the next thing is a sibling key
     let value = if not(has_indent) && self.is_sibling_key_ahead() {
       // This is a sibling key, not a value - return null for current key
-      if first_key == "name" || first_key == "true" || first_key == "on" {
-        println("parse_mapping_with_first_key: sibling key ahead, returning null for key=\{key}")
-      }
       YNull(@common.Trivia::empty())
     } else if has_indent && has_key_after {
       // We have an indent followed by a key - this is an indented block mapping
       // Call parse_indented_mapping directly to handle the nested structure
-      if first_key == "name" || first_key == "true" || first_key == "on" {
-        println("parse_mapping_with_first_key: calling parse_indented_mapping for key=\{key}")
-      }
       let leading = self.flush_leading()
       match self.parse_indented_mapping(leading) {
         Ok(v) => v
         Err(e) => return Err(e)
       }
     } else {
-      if first_key == "name" || first_key == "true" || first_key == "on" {
-        println("parse_mapping_with_first_key: calling parse_value for key=\{key}, has_indent=\{has_indent}, has_key_after=\{has_key_after}")
-      }
       match self.parse_value() {
-        Ok(v) => {
-          if first_key == "name" || first_key == "true" || first_key == "on" {
-            println("parse_mapping_with_first_key: parse_value returned for key=\{key}, peek=" + debug_token_kind(self.peek_kind()))
-          }
-          v
-        }
+        Ok(v) => v
         Err(e) => return Err(e)
       }
     }
     pairs.push(YKeyValue::new(key_node, key_trivia, value))
-    // Debug: log after adding each pair
-    if first_key == "name" || first_key == "true" || first_key == "on" {
-      println("parse_mapping_with_first_key: after adding pair (key=\{key}), pairs.length=\{pairs.length()}, peek=" + debug_token_kind(self.peek_kind()) + ", self.pos=\{self.pos}")
-    }
     // Handle dedent - consume child mapping dedents and check for siblings
     self.skip_trivia()
     match self.peek_kind() {
@@ -482,10 +453,6 @@ fn Parser::parse_mapping_with_first_key(
         }
         self.skip_trivia()
         let next_kind = self.peek_kind()
-        // Debug logging
-        if first_key == "name" || first_key == "true" || first_key == "paths" || first_key == "on" {
-          println("parse_mapping_with_first_key: after dedent, next_kind=" + debug_token_kind(next_kind) + ", is_potential_key=" + is_potential_key(next_kind).to_string() + ", base_indent=\{base_indent}, first_key=\{first_key}")
-        }
         // If we still see a Dedent, break (let parent handle)
         if self.peek_kind() is Some(Dedent(_)) {
           break
@@ -500,10 +467,6 @@ fn Parser::parse_mapping_with_first_key(
     }
     // Check for next key
     self.skip_trivia()
-    // Debug: log what we see
-    if first_key == "name" || first_key == "true" || first_key == "on" {
-      println("parse_mapping_with_first_key: checking for next key, peek=" + debug_token_kind(self.peek_kind()) + ", self.pos=\{self.pos}")
-    }
     // Handle Indent tokens that might precede sibling keys at the same level
     // This happens when the current key's value is complete and we see another key at the same level
     if self.peek_kind() is Some(Indent(_)) {
@@ -547,15 +510,15 @@ fn Parser::parse_mapping_with_first_key(
         self.skip_trivia()
       }
       // YAML 1.1 booleans and null can also be keys (e.g., "on:" in GitHub Actions)
-      Some(TrueValue) => {
-        key = "true"
+      Some(TrueValue(original)) => {
+        key = original
         key_style = Plain
         key_leading = self.flush_leading()
         let _ = self.advance()
         self.skip_trivia()
       }
-      Some(FalseValue) => {
-        key = "false"
+      Some(FalseValue(original)) => {
+        key = original
         key_style = Plain
         key_leading = self.flush_leading()
         let _ = self.advance()
@@ -704,51 +667,10 @@ fn Parser::parse_flow_mapping(
 }
 
 ///|
-///|
-fn debug_token_kind(kind : TokenKind?) -> String {
-  match kind {
-    Some(k) => token_kind_name(k)
-    None => "None"
-  }
-}
-
-///|
-fn token_kind_name(kind : TokenKind) -> String {
-  match kind {
-    Colon => "':'"
-    Dash => "'-'"
-    Comma => "','"
-    LBrace => "'{'"
-    RBrace => "'}'"
-    LBracket => "'['"
-    RBracket => "']'"
-    Indent(n) => "indent(" + n.to_string() + ")"
-    Dedent(n) => "dedent(" + n.to_string() + ")"
-    PlainScalar(s) => "scalar: " + s
-    SingleQuotedScalar(s) => "'" + s + "'"
-    DoubleQuotedScalar(s) => "\"" + s + "\""
-    LiteralBlock(_) => "literal block"
-    FoldedBlock(_) => "folded block"
-    NullValue => "null"
-    TrueValue => "true"
-    FalseValue => "false"
-    Anchor(n) => "&" + n
-    Alias(n) => "*" + n
-    Comment(_) => "comment"
-    Whitespace(_) => "whitespace"
-    Newline => "newline"
-    DocumentStart => "---"
-    DocumentEnd => "..."
-    Eof => "end of input"
-    Invalid(msg) => msg
-  }
-}
-
-///|
 fn is_potential_key(kind : TokenKind?) -> Bool {
   match kind {
     Some(PlainScalar(_)) | Some(SingleQuotedScalar(_)) | Some(DoubleQuotedScalar(_)) |
-    Some(TrueValue) | Some(FalseValue) | Some(NullValue) => true
+    Some(TrueValue(_)) | Some(FalseValue(_)) | Some(NullValue) => true
     _ => false
   }
 }
@@ -781,18 +703,6 @@ fn Parser::parse_indented_mapping(
   self : Parser,
   leading : Array[@common.Comment]
 ) -> Result[YamlNode, @common.ParseError] {
-  println("parse_indented_mapping: starting... tokens.length=\{self.tokens.length()}, self.pos=\{self.pos}")
-  if self.tokens.length() >= 30 && self.tokens.length() <= 60 {
-    println("  All tokens: ")
-    for i = 0; i < self.tokens.length(); i = i + 1 {
-      println("    \{i}: " + self.tokens[i].kind.to_string())
-    }
-  } else if self.tokens.length() < 25 {
-    println("  All tokens: ")
-    for i = 0; i < self.tokens.length(); i = i + 1 {
-      println("    \{i}: " + self.tokens[i].kind.to_string())
-    }
-  }
   // Parse an indented block mapping by collecting all keys at this level
   let pairs : Array[YKeyValue] = []
   let mut key = ""
@@ -808,7 +718,6 @@ fn Parser::parse_indented_mapping(
       Indent(key_level) => {
         // Keys are at key_level - set base_indent to this level
         base_indent = key_level
-        println("  parse_indented_mapping: set base_indent=\{base_indent} from entry Indent at pos \{entry_pos - 1}")
       }
       _ => ()
     }
@@ -826,7 +735,6 @@ fn Parser::parse_indented_mapping(
     // that returns to a level at or above our base indent
     match self.peek_kind() {
       Some(Dedent(n)) => {
-        println("  parse_indented_mapping: loop start - saw dedent n=\{n}, base_indent=\{base_indent}")
         // Exit if base_indent is set and n < base_indent (dedented PAST our level)
         // Or if base_indent is -1 and n == 0 (dedented to top level)
         // If n == base_indent, we're at the SAME level, so sibling keys may exist
@@ -837,12 +745,10 @@ fn Parser::parse_indented_mapping(
         }
         if should_exit {
           // Consume the dedent and exit
-          println("  parse_indented_mapping: early exit due to dedent, n=\{n}, base_indent=\{base_indent}")
           let _ = self.advance()
           break
         }
         // Otherwise, consume the dedent and continue checking for more keys
-        println("  parse_indented_mapping: consuming dedent and continuing, n=\{n}, base_indent=\{base_indent}")
         let _ = self.advance()
         self.skip_trivia()
         continue
@@ -860,14 +766,12 @@ fn Parser::parse_indented_mapping(
           // The last pair is the one that should have this sequence as its value
           let last_idx = pairs.length() - 1
           let last_key = pairs[last_idx].key
-          println("  parse_indented_mapping: Dash handling - before parse_block_sequence, self.pos=\{self.pos}, tokens.length=\{self.tokens.length()}")
           // Parse the sequence
           match self.parse_block_sequence([]) {
             Ok(seq) => {
               // Replace the last pair's value with the sequence
               let new_pair = YKeyValue::new(last_key, pairs[last_idx].key_trivia, seq)
               pairs[last_idx] = new_pair
-              println("  parse_indented_mapping: Dash handling - after parse_block_sequence, self.pos=\{self.pos}, peek=" + debug_token_kind(self.peek_kind()))
             }
             Err(e) => return Err(e)
           }
@@ -875,7 +779,6 @@ fn Parser::parse_indented_mapping(
         continue
       }
       Some(PlainScalar(s)) => {
-        println("  parse_indented_mapping iter \{loop_count}: PlainScalar(\{s}), self.pos=\{self.pos}")
         key = s
         key_style = Plain
         key_leading = self.flush_leading()
@@ -883,7 +786,6 @@ fn Parser::parse_indented_mapping(
         self.skip_trivia()
       }
       Some(SingleQuotedScalar(s)) => {
-        println("  parse_indented_mapping iter \{loop_count}: SingleQuotedScalar(\{s})")
         key = s
         key_style = SingleQuoted
         key_leading = self.flush_leading()
@@ -891,31 +793,27 @@ fn Parser::parse_indented_mapping(
         self.skip_trivia()
       }
       Some(DoubleQuotedScalar(s)) => {
-        println("  parse_indented_mapping iter \{loop_count}: DoubleQuotedScalar(\{s})")
         key = s
         key_style = DoubleQuoted
         key_leading = self.flush_leading()
         let _ = self.advance()
         self.skip_trivia()
       }
-      Some(TrueValue) => {
-        println("  parse_indented_mapping iter \{loop_count}: TrueValue")
-        key = "true"
+      Some(TrueValue(original)) => {
+        key = original
         key_style = Plain
         key_leading = self.flush_leading()
         let _ = self.advance()
         self.skip_trivia()
       }
-      Some(FalseValue) => {
-        println("  parse_indented_mapping iter \{loop_count}: FalseValue")
-        key = "false"
+      Some(FalseValue(original)) => {
+        key = original
         key_style = Plain
         key_leading = self.flush_leading()
         let _ = self.advance()
         self.skip_trivia()
       }
       Some(NullValue) => {
-        println("  parse_indented_mapping iter \{loop_count}: NullValue")
         key = "null"
         key_style = Plain
         key_leading = self.flush_leading()
@@ -931,10 +829,7 @@ fn Parser::parse_indented_mapping(
         // Retry getting the key
         continue
       }
-      _ => {
-        println("  parse_indented_mapping iter \{loop_count}: breaking, peek=" + debug_token_kind(self.peek_kind()))
-        break
-      }
+      _ => break
     }
 
     // Expect colon
@@ -966,26 +861,13 @@ fn Parser::parse_indented_mapping(
     let value = if not(has_indent) && self.is_sibling_key_ahead() {
       YNull(@common.Trivia::empty())
     } else {
-      if key == "push" {
-        println("  parse_indented_mapping: before parse_value for push, self.pos=\{self.pos}, peek=" + debug_token_kind(self.peek_kind()))
-      }
       match self.parse_value() {
-        Ok(v) => {
-          if key == "push" {
-            println("  parse_indented_mapping: after parse_value for push, self.pos=\{self.pos}, peek=" + debug_token_kind(self.peek_kind()))
-          }
-          v
-        }
+        Ok(v) => v
         Err(e) => return Err(e)
       }
     }
 
     pairs.push(YKeyValue::new(key_node, key_trivia, value))
-
-    // Debug: show what we have after adding this pair
-    if key == "push" {
-      println("  parse_indented_mapping: after adding push, pairs.length()=\{pairs.length()}")
-    }
 
     // Handle dedents - consume dedents but stop at base_indent level
     // We should NOT consume dedents past our base indent, as those belong to our parent
@@ -995,7 +877,6 @@ fn Parser::parse_indented_mapping(
     // The parser will call us again if there are more dedents to handle
     match self.peek_kind() {
       Some(Dedent(n)) => {
-        println("  parse_indented_mapping: saw Dedent(\{n}), base_indent=\{base_indent}, key=\{key}")
         // Check if we've exited this mapping:
         // 1. If base_indent is set and n < base_indent, we've dedented PAST our level
         // 2. If base_indent is -1 and n == 0, we've dedented to top level
@@ -1008,7 +889,6 @@ fn Parser::parse_indented_mapping(
         if should_exit {
           // We've dedented back to or past our base indent level
           // Consume the dedent that triggered exit so the parent can see the next token
-          println("  parse_indented_mapping: exiting due to dedent (should_exit), key=\{key}, n=\{n}, base_indent=\{base_indent}")
           let _ = self.advance()
           break
         }
@@ -1023,9 +903,6 @@ fn Parser::parse_indented_mapping(
           // when we check for indent before parsing the value
           continue
         }
-        if key == "push" {
-          println("  parse_indented_mapping: consumed dedent, peek=" + debug_token_kind(self.peek_kind()))
-        }
       }
       Some(Indent(_)) => {
         // We see an indent after parsing the value - this is for a sibling key
@@ -1037,21 +914,13 @@ fn Parser::parse_indented_mapping(
       _ => ()
     }
 
-    if key == "push" {
-      println("  parse_indented_mapping: after dedents, base_indent=\{base_indent}, peek=" + debug_token_kind(self.peek_kind()))
-    }
-
     // Check if there's a potential key to continue
     if not(is_potential_key(self.peek_kind())) {
-      if key == "push" {
-        println("  parse_indented_mapping: breaking because no potential key, peek=" + debug_token_kind(self.peek_kind()))
-      }
       break
     }
     // Otherwise, continue for more keys
   }
 
-  println("  parse_indented_mapping: returning with pairs.length=\{pairs.length()}, self.pos=\{self.pos}, peek=" + debug_token_kind(self.peek_kind()))
   Ok(YMapping(pairs, @common.Trivia::new(leading, [])))
 }
 

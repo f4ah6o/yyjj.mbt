@@ -498,9 +498,9 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
   let kind = match scalar {
     "null" | "Null" | "NULL" | "~" => NullValue
     "true" | "True" | "TRUE" | "yes" | "Yes" | "YES" | "on" | "On" | "ON" =>
-      TrueValue
+      TrueValue(scalar)
     "false" | "False" | "FALSE" | "no" | "No" | "NO" | "off" | "Off" | "OFF" =>
-      FalseValue
+      FalseValue(scalar)
     _ => PlainScalar(scalar)
   }
   Token::new(kind, @common.Span::new(start, self.current_pos()))

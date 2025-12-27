@@ -20,8 +20,8 @@ pub enum TokenKind {
   FoldedBlock(String) // > block
   // Keywords (special values)
   NullValue // null, ~, empty
-  TrueValue // true, yes, on
-  FalseValue // false, no, off
+  TrueValue(String) // true, yes, on - stores original keyword
+  FalseValue(String) // false, no, off - stores original keyword
   // Anchors and aliases
   Anchor(String) // &anchor
   Alias(String) // *alias
