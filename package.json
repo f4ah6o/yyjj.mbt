@@ -40,7 +40,7 @@
     "prepublishOnly": "pnpm run build",
     "dev": "vite",
     "test": "moon test",
-    "version": "node scripts/sync-version.js && git add moon.mod.json",
+    "set-version": "node scripts/sync-version.js && git add moon.mod.json examples/package.json",
     "release": "node scripts/release.js"
   },
   "packageManager": "pnpm@10.26.2",

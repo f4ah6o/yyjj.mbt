@@ -16,12 +16,19 @@ const version = packageJson.version;
 const moonModPath = join(rootDir, 'moon.mod.json');
 const moonModJson = JSON.parse(readFileSync(moonModPath, 'utf8'));
 
-// Update version
+// Read examples/package.json
+const examplesPackagePath = join(rootDir, 'examples', 'package.json');
+const examplesPackageJson = JSON.parse(readFileSync(examplesPackagePath, 'utf8'));
+
+// Update versions
 moonModJson.version = version;
+examplesPackageJson.dependencies.yyjj = `^${version}`;
 
 // Write back
 writeFileSync(moonModPath, JSON.stringify(moonModJson, null, 2) + '\n');
+writeFileSync(examplesPackagePath, JSON.stringify(examplesPackageJson, null, 2) + '\n');
 
 console.log(`✅ Synced version to ${version}`);
 console.log(`   - package.json: ${version}`);
 console.log(`   - moon.mod.json: ${version}`);
+console.log(`   - examples/package.json: ^${version}`);
