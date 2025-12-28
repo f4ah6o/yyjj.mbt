@@ -438,3 +438,708 @@ test "pbt_nested_workflow_roundtrip" {
     max_success=100,
   )
 }
+
+// ============================================================================
+// Phase 1: Trivia (Comment) Preservation Tests
+// ============================================================================
+
+///|
+/// Generate safe comment text (no newlines, no */ for block comments)
+fn gen_comment_text() -> @qc.Gen[String] {
+  @qc.one_of(
+    [
+      @qc.pure("comment"),
+      @qc.pure("TODO: fix this"),
+      @qc.pure("Author: test"),
+      @qc.pure("重要な項目"),
+      @qc.pure("note: value"),
+      gen_safe_string().fmap(fn(s) {
+        // Filter out newlines and ensure no problematic sequences
+        let buf = StringBuilder::new()
+        for c in s {
+          let code = c.to_int()
+          if code >= 0x20 && code < 0x7f && c != '\n' && c != '\r' {
+            buf.write_char(c)
+          }
+        }
+        let result = buf.to_string()
+        if result.is_empty() {
+          "comment"
+        } else {
+          result
+        }
+      }),
+    ],
+  )
+}
+
+///|
+/// Generate a line comment
+fn gen_line_comment() -> @qc.Gen[@common.Comment] {
+  let empty_span = @common.Span::at(@common.Pos::zero())
+  gen_comment_text().fmap(fn(content) {
+    @common.Comment::new(content, @common.CommentKind::line(), empty_span, false)
+  })
+}
+
+///|
+/// Generate a block comment
+fn gen_block_comment() -> @qc.Gen[@common.Comment] {
+  let empty_span = @common.Span::at(@common.Pos::zero())
+  gen_comment_text().fmap(fn(content) {
+    @common.Comment::new(content, @common.CommentKind::block(), empty_span, false)
+  })
+}
+
+///|
+/// Generate JSONC trivia (supports block and line comments)
+fn gen_jsonc_trivia() -> @qc.Gen[@common.Trivia] {
+  @qc.frequency(
+    [
+      // Most common: no comments
+      (10, @qc.pure(@common.Trivia::empty())),
+      // Single leading line comment
+      (3, gen_line_comment().fmap(fn(c) { @common.Trivia::with_leading([c]) })),
+      // Single leading block comment
+      (2, gen_block_comment().fmap(fn(c) { @common.Trivia::with_leading([c]) })),
+      // Single trailing line comment
+      (2, gen_line_comment().fmap(fn(c) { @common.Trivia::with_trailing([c]) })),
+      // Both leading and trailing
+      (1, gen_line_comment().bind(fn(l) {
+        gen_line_comment().fmap(fn(t) { @common.Trivia::new([l], [t]) })
+      })),
+    ],
+  )
+}
+
+///|
+/// Generate YAML trivia (only line comments)
+fn gen_yaml_trivia() -> @qc.Gen[@common.Trivia] {
+  @qc.frequency(
+    [
+      // Most common: no comments
+      (10, @qc.pure(@common.Trivia::empty())),
+      // Single leading comment
+      (3, gen_line_comment().fmap(fn(c) { @common.Trivia::with_leading([c]) })),
+      // Single trailing comment
+      (2, gen_line_comment().fmap(fn(c) { @common.Trivia::with_trailing([c]) })),
+      // Both leading and trailing
+      (1, gen_line_comment().bind(fn(l) {
+        gen_line_comment().fmap(fn(t) { @common.Trivia::new([l], [t]) })
+      })),
+    ],
+  )
+}
+
+///|
+/// Generate a JSON scalar with trivia attached
+fn gen_json_scalar_with_trivia() -> @qc.Gen[@jsonc.JsonNode] {
+  gen_jsonc_trivia().bind(fn(trivia) {
+    @qc.one_of(
+      [
+        @qc.pure(@jsonc.JsonNode::null_with_trivia(trivia)),
+        {
+          let g : @qc.Gen[Bool] = @qc.Gen::spawn()
+          g.fmap(fn(b) { @jsonc.JsonNode::bool_with_trivia(b, trivia) })
+        },
+        gen_valid_number().fmap(fn(n) { @jsonc.JsonNode::number_with_trivia(n, trivia) }),
+        gen_safe_string().fmap(fn(s) { @jsonc.JsonNode::string_with_trivia(s, trivia) }),
+      ],
+    )
+  })
+}
+
+///|
+/// Generate a JSON node with trivia (limited depth)
+fn gen_json_node_with_trivia() -> @qc.Gen[@jsonc.JsonNode] {
+  @qc.frequency(
+    [
+      // Scalars (high weight)
+      (6, gen_json_scalar_with_trivia()),
+      // Empty array
+      (1, gen_jsonc_trivia().fmap(fn(t) { @jsonc.JsonNode::array_with_trivia([], t) })),
+      // Empty object
+      (1, gen_jsonc_trivia().fmap(fn(t) { @jsonc.JsonNode::object_with_trivia([], t) })),
+      // Small array with trivia
+      (
+        1,
+        gen_json_scalar_with_trivia().bind(fn(elem) {
+          gen_jsonc_trivia().fmap(fn(t) { @jsonc.JsonNode::array_with_trivia([elem], t) })
+        }),
+      ),
+      // Small object with trivia
+      (
+        1,
+        gen_safe_key().bind(fn(key) {
+          gen_jsonc_trivia().bind(fn(key_trivia) {
+            gen_json_scalar_with_trivia().fmap(fn(val) {
+              @jsonc.JsonNode::object_with_trivia(
+                [@jsonc.JProperty::new(key, key_trivia, val)],
+                @common.Trivia::empty(),
+              )
+            })
+          })
+        }),
+      ),
+    ],
+  )
+}
+
+///|
+/// Generate a YAML scalar with trivia attached
+fn gen_yaml_scalar_with_trivia() -> @qc.Gen[@yaml.YamlNode] {
+  gen_yaml_trivia().bind(fn(trivia) {
+    @qc.one_of(
+      [
+        @qc.pure(@yaml.YamlNode::null_with_trivia(trivia)),
+        {
+          let g : @qc.Gen[Bool] = @qc.Gen::spawn()
+          g.fmap(fn(b) { @yaml.YamlNode::bool_with_trivia(b, trivia) })
+        },
+        gen_valid_number().fmap(fn(n) { @yaml.YamlNode::number_with_trivia(n, trivia) }),
+        gen_safe_string().fmap(fn(s) {
+          @yaml.YamlNode::string_with_trivia(s, @yaml.YamlScalarStyle::double_quoted(), trivia)
+        }),
+      ],
+    )
+  })
+}
+
+///|
+/// Generate a YAML node with trivia (limited depth)
+fn gen_yaml_node_with_trivia() -> @qc.Gen[@yaml.YamlNode] {
+  @qc.frequency(
+    [
+      // Scalars (high weight)
+      (6, gen_yaml_scalar_with_trivia()),
+      // Empty sequence
+      (1, gen_yaml_trivia().fmap(fn(t) { @yaml.YamlNode::sequence_with_trivia([], t) })),
+      // Empty mapping
+      (1, gen_yaml_trivia().fmap(fn(t) { @yaml.YamlNode::mapping_with_trivia([], t) })),
+      // Small sequence with trivia
+      (
+        1,
+        gen_yaml_scalar_with_trivia().bind(fn(elem) {
+          gen_yaml_trivia().fmap(fn(t) { @yaml.YamlNode::sequence_with_trivia([elem], t) })
+        }),
+      ),
+      // Small mapping with trivia
+      (
+        1,
+        gen_safe_key().bind(fn(key) {
+          gen_yaml_trivia().bind(fn(key_trivia) {
+            gen_yaml_scalar_with_trivia().fmap(fn(val) {
+              @yaml.YamlNode::mapping_with_trivia(
+                [@yaml.YKeyValue::new(
+                  @yaml.YamlNode::string_with_trivia(
+                    key,
+                    @yaml.YamlScalarStyle::double_quoted(),
+                    @common.Trivia::empty(),
+                  ),
+                  key_trivia,
+                  val,
+                )],
+                @common.Trivia::empty(),
+              )
+            })
+          })
+        }),
+      ),
+    ],
+  )
+}
+
+///|
+/// Extract all comments from a JsonNode recursively
+fn extract_jsonc_comments(node : @jsonc.JsonNode) -> Array[@common.Comment] {
+  let comments : Array[@common.Comment] = []
+  collect_jsonc_comments(node, comments)
+  comments
+}
+
+///|
+/// Collect comments from JsonNode into accumulator
+fn collect_jsonc_comments(node : @jsonc.JsonNode, acc : Array[@common.Comment]) -> Unit {
+  let trivia = node.trivia()
+  acc.push_iter(trivia.leading.iter())
+  acc.push_iter(trivia.trailing.iter())
+  match node {
+    @jsonc.JArray(elements, _) => {
+      for e in elements {
+        collect_jsonc_comments(e, acc)
+      }
+    }
+    @jsonc.JObject(props, _) => {
+      for p in props {
+        acc.push_iter(p.key_trivia.leading.iter())
+        acc.push_iter(p.key_trivia.trailing.iter())
+        collect_jsonc_comments(p.value, acc)
+      }
+    }
+    _ => ()
+  }
+}
+
+///|
+/// Extract all comments from a YamlNode recursively
+fn extract_yaml_comments(node : @yaml.YamlNode) -> Array[@common.Comment] {
+  let comments : Array[@common.Comment] = []
+  collect_yaml_comments(node, comments)
+  comments
+}
+
+///|
+/// Collect comments from YamlNode into accumulator
+fn collect_yaml_comments(node : @yaml.YamlNode, acc : Array[@common.Comment]) -> Unit {
+  let trivia = node.trivia()
+  acc.push_iter(trivia.leading.iter())
+  acc.push_iter(trivia.trailing.iter())
+  match node {
+    @yaml.YSequence(elements, _) => {
+      for e in elements {
+        collect_yaml_comments(e, acc)
+      }
+    }
+    @yaml.YMapping(pairs, _) => {
+      for kv in pairs {
+        acc.push_iter(kv.key_trivia.leading.iter())
+        acc.push_iter(kv.key_trivia.trailing.iter())
+        collect_yaml_comments(kv.key, acc)
+        collect_yaml_comments(kv.value, acc)
+      }
+    }
+    @yaml.YAnchor(_, inner) => {
+      collect_yaml_comments(inner, acc)
+    }
+    _ => ()
+  }
+}
+
+///|
+/// Normalize comment content for comparison
+fn normalize_comment_content(comments : Array[@common.Comment]) -> Array[String] {
+  let result : Array[String] = []
+  for c in comments {
+    let trimmed = c.content.trim()
+    if not(trimmed.is_empty()) {
+      result.push(trimmed.to_string())
+    }
+  }
+  result
+}
+
+///|
+/// PBT: JSONC comments are preserved through print -> parse round-trip
+test "pbt_jsonc_trivia_preserved_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_json_node_with_trivia(), fn(node) {
+      let printed = @jsonc.print(node)
+      match @jsonc.parse(printed) {
+        Ok(parsed) => {
+          let original_comments = normalize_comment_content(extract_jsonc_comments(node))
+          let parsed_comments = normalize_comment_content(extract_jsonc_comments(parsed))
+          original_comments == parsed_comments
+        }
+        Err(_) => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: YAML comments are preserved through print -> parse round-trip
+test "pbt_yaml_trivia_preserved_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_yaml_node_with_trivia(), fn(node) {
+      let printed = @yaml.print(node)
+      match @yaml.parse(printed) {
+        Ok(parsed) => {
+          let original_comments = normalize_comment_content(extract_yaml_comments(node))
+          let parsed_comments = normalize_comment_content(extract_yaml_comments(parsed))
+          original_comments == parsed_comments
+        }
+        Err(_) => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: Comments content is preserved through JSONC -> YAML transformation
+/// Note: Block comments become multiple line comments in YAML
+test "pbt_jsonc_to_yaml_trivia_preserved" {
+  @qc.quick_check(
+    @qc.forall(gen_json_node_with_trivia(), fn(node) {
+      let yaml_node = @transform.jsonc_to_yaml(node)
+      let original_comments = normalize_comment_content(extract_jsonc_comments(node))
+      let yaml_comments = normalize_comment_content(extract_yaml_comments(yaml_node))
+      // Comment content should be preserved (block -> line splits are OK)
+      // Check that all original comment content appears in YAML comments
+      let all_found = {
+        let mut found = true
+        for orig in original_comments {
+          let mut current_found = false
+          for y in yaml_comments {
+            if string_contains(y, orig) || string_contains(orig, y) {
+              current_found = true
+            }
+          }
+          if not(current_found) {
+            found = false
+          }
+        }
+        found
+      }
+      all_found
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// Helper: check if a string contains another string
+fn string_contains(haystack : String, needle : String) -> Bool {
+  if needle.length() > haystack.length() {
+    false
+  } else {
+    let haystack_chars = haystack.to_array()
+    let needle_chars = needle.to_array()
+    // Check if needle_chars appears in haystack_chars
+    let mut found = false
+    let mut i = 0
+    while i <= haystack_chars.length() - needle_chars.length() && not(found) {
+      let mut is_match = true
+      let mut j = 0
+      while j < needle_chars.length() && is_match {
+        if haystack_chars[i + j] != needle_chars[j] {
+          is_match = false
+        } else {
+          j = j + 1
+        }
+      }
+      if is_match {
+        found = true
+      } else {
+        i = i + 1
+      }
+    }
+    found
+  }
+}
+
+///|
+/// PBT: Comments content is preserved through YAML -> JSONC transformation
+test "pbt_yaml_to_jsonc_trivia_preserved" {
+  @qc.quick_check(
+    @qc.forall(gen_yaml_node_with_trivia(), fn(node) {
+      let jsonc_node = @transform.yaml_to_jsonc(node)
+      let original_comments = normalize_comment_content(extract_yaml_comments(node))
+      let jsonc_comments = normalize_comment_content(extract_jsonc_comments(jsonc_node))
+      original_comments == jsonc_comments
+    }),
+    max_success=100,
+  )
+}
+
+// ============================================================================
+// Phase 2: Edge Cases Tests
+// ============================================================================
+
+///|
+/// Generate Japanese strings
+fn gen_japanese_string() -> @qc.Gen[String] {
+  @qc.one_of(
+    [
+      @qc.pure("こんにちは"),
+      @qc.pure("日本語テスト"),
+      @qc.pure("カタカナ"),
+      @qc.pure("漢字混じり文字列"),
+      @qc.pure("全角数字１２３"),
+      @qc.pure("😀絵文字も含む"),
+    ],
+  )
+}
+
+///|
+/// Generate emoji strings
+fn gen_emoji_string() -> @qc.Gen[String] {
+  @qc.one_of(
+    [
+      @qc.pure("Hello 👋 World"),
+      @qc.pure("🎉 Celebration 🎊"),
+      @qc.pure("❤️ Love ❤️"),
+      @qc.pure("🚀 Rocket 🌟"),
+      @qc.pure("🏳️‍🌈 Pride"),
+      @qc.pure("test with 😊 emoji"),
+    ],
+  )
+}
+
+///|
+/// Generate Unicode strings from various scripts
+fn gen_unicode_string() -> @qc.Gen[String] {
+  @qc.frequency(
+    [
+      (3, gen_safe_string()),  // ASCII baseline
+      (2, gen_japanese_string()),
+      (2, gen_emoji_string()),
+      (1, @qc.pure("中文测试")),
+      (1, @qc.pure("한국어 테스트")),
+      (1, @qc.pure("العربية")),
+    ],
+  )
+}
+
+///|
+/// Generate strings that need escaping in JSON
+fn gen_escape_needed_string() -> @qc.Gen[String] {
+  @qc.one_of(
+    [
+      @qc.pure("line1\nline2"),
+      @qc.pure("tab\there"),
+      @qc.pure("quote\"inside"),
+      @qc.pure("backslash\\path"),
+      @qc.pure("mixed\"\n\\tabs"),
+    ],
+  )
+}
+
+///|
+/// Generate strings that look like YAML keywords
+fn gen_yaml_keyword_like_string() -> @qc.Gen[String] {
+  @qc.one_of(
+    [
+      @qc.pure("null"),
+      @qc.pure("Null"),
+      @qc.pure("NULL"),
+      @qc.pure("true"),
+      @qc.pure("True"),
+      @qc.pure("TRUE"),
+      @qc.pure("false"),
+      @qc.pure("False"),
+      @qc.pure("FALSE"),
+      @qc.pure("yes"),
+      @qc.pure("no"),
+      @qc.pure("on"),
+      @qc.pure("off"),
+    ],
+  )
+}
+
+///|
+/// Generate edge case numbers
+fn gen_edge_case_number() -> @qc.Gen[String] {
+  @qc.one_of(
+    [
+      @qc.pure("0"),
+      @qc.pure("-0"),
+      @qc.pure("9999999999999999"),
+      @qc.pure("-9999999999999999"),
+      @qc.pure("1e10"),
+      @qc.pure("1E10"),
+      @qc.pure("1e+10"),
+      @qc.pure("1e-10"),
+      @qc.pure("1.5e10"),
+      @qc.pure("1.5E-10"),
+      @qc.pure("0.1"),
+      @qc.pure("3.141592653589793"),
+    ],
+  )
+}
+
+///|
+/// Generate deeply nested JSON structures
+fn gen_deeply_nested_json(max_depth : Int) -> @qc.Gen[@jsonc.JsonNode] {
+  @qc.sized(fn(size) {
+    let depth = (size / 10).clamp(min=1, max=max_depth)
+    gen_nested_json_at_depth(depth, @common.Trivia::empty())
+  })
+}
+
+///|
+/// Generate nested JSON at specific depth
+fn gen_nested_json_at_depth(depth : Int, trivia : @common.Trivia) -> @qc.Gen[@jsonc.JsonNode] {
+  if depth <= 0 {
+    gen_json_scalar()
+  } else {
+    @qc.frequency(
+      [
+        // Nested array
+        (
+          1,
+          gen_nested_json_at_depth(depth - 1, @common.Trivia::empty()).fmap(fn(inner) {
+            @jsonc.JsonNode::array_with_trivia([inner], trivia)
+          }),
+        ),
+        // Nested object
+        (
+          1,
+          gen_safe_key().bind(fn(key) {
+            gen_nested_json_at_depth(depth - 1, @common.Trivia::empty()).fmap(fn(inner) {
+              @jsonc.JsonNode::object_with_trivia(
+                [@jsonc.JProperty::new(key, @common.Trivia::empty(), inner)],
+                trivia,
+              )
+            })
+          }),
+        ),
+      ],
+    )
+  }
+}
+
+///|
+/// Generate empty/edge case JSON values
+fn gen_empty_json() -> @qc.Gen[@jsonc.JsonNode] {
+  let empty = @common.Trivia::empty()
+  @qc.one_of(
+    [
+      @qc.pure(@jsonc.JsonNode::string_with_trivia("", empty)),  // Empty string
+      @qc.pure(@jsonc.JsonNode::array_with_trivia([], empty)),   // Empty array
+      @qc.pure(@jsonc.JsonNode::object_with_trivia([], empty)),  // Empty object
+      @qc.pure(@jsonc.JsonNode::null_with_trivia(empty)),        // Null
+    ],
+  )
+}
+
+///|
+/// PBT: Unicode strings survive JSONC round-trip
+test "pbt_unicode_jsonc_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_unicode_string(), fn(s) {
+      let node = @jsonc.JsonNode::string(s)
+      let printed = @jsonc.print(node)
+      match @jsonc.parse(printed) {
+        Ok(@jsonc.JString(parsed_s, _)) => s == parsed_s
+        _ => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: Unicode strings survive YAML round-trip
+test "pbt_unicode_yaml_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_unicode_string(), fn(s) {
+      let node = @yaml.YamlNode::string(s, @yaml.YamlScalarStyle::double_quoted())
+      let printed = @yaml.print(node)
+      match @yaml.parse(printed) {
+        Ok(@yaml.YString(parsed_s, _, _)) => s == parsed_s
+        _ => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: Unicode strings survive JSONC -> YAML -> JSONC transformation
+test "pbt_unicode_transform_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_unicode_string(), fn(s) {
+      let json_node = @jsonc.JsonNode::string(s)
+      let yaml_node = @transform.jsonc_to_yaml(json_node)
+      let back = @transform.yaml_to_jsonc(yaml_node)
+      match back {
+        @jsonc.JString(result, _) => s == result
+        _ => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: Special escape sequences are preserved in JSONC round-trip
+test "pbt_escape_chars_jsonc_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_escape_needed_string(), fn(s) {
+      let node = @jsonc.JsonNode::string(s)
+      let printed = @jsonc.print(node)
+      match @jsonc.parse(printed) {
+        Ok(@jsonc.JString(parsed, _)) => s == parsed
+        _ => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: YAML keyword-like strings are properly quoted and preserved
+test "pbt_yaml_keyword_strings_preserved" {
+  @qc.quick_check(
+    @qc.forall(gen_yaml_keyword_like_string(), fn(s) {
+      let node = @yaml.YamlNode::string(s, @yaml.YamlScalarStyle::double_quoted())
+      let printed = @yaml.print(node)
+      match @yaml.parse(printed) {
+        Ok(@yaml.YString(parsed, _, _)) => s == parsed
+        _ => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: Deeply nested structures survive JSONC round-trip
+test "pbt_deep_nesting_jsonc_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_deeply_nested_json(10), fn(node) {
+      let printed = @jsonc.print(node)
+      match @jsonc.parse(printed) {
+        Ok(parsed) => strip_jsonc_trivia(node) == strip_jsonc_trivia(parsed)
+        Err(_) => false
+      }
+    }),
+    max_success=50,
+  )
+}
+
+///|
+/// PBT: Deeply nested structures survive transformation round-trip
+test "pbt_deep_nesting_transform_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_deeply_nested_json(8), fn(node) {
+      let yaml = @transform.jsonc_to_yaml(node)
+      let back = @transform.yaml_to_jsonc(yaml)
+      strip_jsonc_trivia(node) == strip_jsonc_trivia(back)
+    }),
+    max_success=50,
+  )
+}
+
+///|
+/// PBT: Empty values are handled correctly in JSONC round-trip
+test "pbt_empty_values_roundtrip" {
+  @qc.quick_check(
+    @qc.forall(gen_empty_json(), fn(node) {
+      let printed = @jsonc.print(node)
+      match @jsonc.parse(printed) {
+        Ok(parsed) => strip_jsonc_trivia(node) == strip_jsonc_trivia(parsed)
+        Err(_) => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: Edge case numbers are preserved in JSONC round-trip
+test "pbt_edge_case_numbers" {
+  @qc.quick_check(
+    @qc.forall(gen_edge_case_number(), fn(num_str) {
+      let node = @jsonc.JsonNode::number(num_str)
+      let printed = @jsonc.print(node)
+      match @jsonc.parse(printed) {
+        Ok(@jsonc.JNumber(parsed, _)) => num_str == parsed
+        _ => false
+      }
+    }),
+    max_success=100,
+  )
+}
