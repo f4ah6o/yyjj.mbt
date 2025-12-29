@@ -59,8 +59,8 @@ async function main() {
   }
 
   // Validate version format
-  if (!/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(newVersion)) {
-    console.log('❌ Invalid version format. Expected: YYYY.MM.DD (e.g., 2025.12.11)');
+  if (!/^\d{4}\.\d+\.\d+$/.test(newVersion)) {
+    console.log('❌ Invalid version format. Expected: yyyy.mm.incremental (e.g., 2025.1.0)');
     rl.close();
     return;
   }
