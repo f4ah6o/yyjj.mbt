@@ -7,8 +7,15 @@ import {
 	jsoncError,
 	yamlError,
 	editSource,
+	jsoncFilename,
+	yamlFilename,
 } from "../state/store";
 import { jsoncToYaml, yamlToJsonc } from "../lib/yyjj-wrapper";
+import {
+	readFileAsText,
+	downloadFile,
+	generateFilename,
+} from "../utils/fileUtils";
 
 const DEBOUNCE_MS = 300;
 
@@ -59,6 +66,62 @@ function handleYamlChange(value: string) {
 	}, DEBOUNCE_MS);
 }
 
+async function handleJsoncImport(file: File): Promise<void> {
+	try {
+		const text = await readFileAsText(file);
+		jsoncContent.value = text;
+		jsoncFilename.value = file.name;
+
+		const result = jsoncToYaml(text);
+		if (result.tag === "Ok") {
+			jsoncError.value = null;
+			editSource.value = "jsonc";
+			yamlContent.value = result.val;
+			yamlFilename.value = null;
+		} else {
+			jsoncError.value = result.val;
+		}
+	} catch {
+		jsoncError.value = {
+			message: "Failed to read file",
+			span: { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
+		};
+	}
+}
+
+async function handleYamlImport(file: File): Promise<void> {
+	try {
+		const text = await readFileAsText(file);
+		yamlContent.value = text;
+		yamlFilename.value = file.name;
+
+		const result = yamlToJsonc(text);
+		if (result.tag === "Ok") {
+			yamlError.value = null;
+			editSource.value = "yaml";
+			jsoncContent.value = result.val;
+			jsoncFilename.value = null;
+		} else {
+			yamlError.value = result.val;
+		}
+	} catch {
+		yamlError.value = {
+			message: "Failed to read file",
+			span: { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
+		};
+	}
+}
+
+function handleJsoncDownload(): void {
+	const filename = jsoncFilename.value || generateFilename("output", ".jsonc");
+	downloadFile(jsoncContent.value, filename, "application/json");
+}
+
+function handleYamlDownload(): void {
+	const filename = yamlFilename.value || generateFilename("output", ".yaml");
+	downloadFile(yamlContent.value, filename, "text/yaml");
+}
+
 export function EditorLayout() {
 	return (
 		<div class="editor-layout">
@@ -68,6 +131,10 @@ export function EditorLayout() {
 				error={jsoncError}
 				extensions={[json()]}
 				onChange={handleJsoncChange}
+				paneType="jsonc"
+				filename={jsoncFilename}
+				onImport={handleJsoncImport}
+				onDownload={handleJsoncDownload}
 			/>
 			<EditorPane
 				title="YAML"
@@ -75,6 +142,10 @@ export function EditorLayout() {
 				error={yamlError}
 				extensions={[yaml()]}
 				onChange={handleYamlChange}
+				paneType="yaml"
+				filename={yamlFilename}
+				onImport={handleYamlImport}
+				onDownload={handleYamlDownload}
 			/>
 		</div>
 	);

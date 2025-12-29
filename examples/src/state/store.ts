@@ -24,3 +24,7 @@ export const editSource = signal<EditSource>(null);
 // Error states
 export const jsoncError = signal<ParseError | null>(null);
 export const yamlError = signal<ParseError | null>(null);
+
+// Filename states
+export const jsoncFilename = signal<string | null>(null);
+export const yamlFilename = signal<string | null>(null);
