@@ -28,18 +28,26 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
 
 ///|
 fn string_to_doc(s : String, style : YamlScalarStyle) -> @pretty.Doc {
-  match style {
-    Plain =>
-      // Quote strings that look like numbers, bools, or null to preserve type
-      if needs_quoting(s) {
-        @pretty.text("\"" + escape_double_quoted(s) + "\"")
-      } else {
-        @pretty.text(s)
-      }
-    SingleQuoted => @pretty.text("'" + escape_single_quoted(s) + "'")
-    DoubleQuoted => @pretty.text("\"" + escape_double_quoted(s) + "\"")
-    Literal => literal_block_to_doc(s)
-    Folded => folded_block_to_doc(s)
+  // Handle empty strings - quote them appropriately for each style
+  if s.is_empty() {
+    match style {
+      SingleQuoted => @pretty.text("''")
+      _ => @pretty.text("\"\"")
+    }
+  } else {
+    match style {
+      Plain =>
+        // Quote strings that look like numbers, bools, or null to preserve type
+        if needs_quoting(s) {
+          @pretty.text("\"" + escape_double_quoted(s) + "\"")
+        } else {
+          @pretty.text(s)
+        }
+      SingleQuoted => @pretty.text("'" + escape_single_quoted(s) + "'")
+      DoubleQuoted => @pretty.text("\"" + escape_double_quoted(s) + "\"")
+      Literal => literal_block_to_doc(s)
+      Folded => folded_block_to_doc(s)
+    }
   }
 }
 
@@ -48,6 +56,16 @@ fn string_to_doc(s : String, style : YamlScalarStyle) -> @pretty.Doc {
 fn needs_quoting(s : String) -> Bool {
   if s.is_empty() {
     return true
+  }
+  // Check for characters that require quoting in Plain scalars
+  // These include: : [ ] { } , # " ' | > & * % @ ` \
+  for i = 0; i < s.length(); i = i + 1 {
+    let ch = s[i].to_int().unsafe_to_char()
+    match ch {
+      ':' | '[' | ']' | '{' | '}' | ',' | '#' | '"' | '\'' | '|' |
+      '>' | '&' | '*' | '%' | '@' | '`' | '\\' => return true
+      _ => ()
+    }
   }
   // Check for YAML keywords
   match s {
@@ -125,13 +143,57 @@ fn escape_double_quoted(s : String) -> String {
 }
 
 ///|
+/// Split string by newlines into array of lines
+fn split_newlines(s : String) -> Array[String] {
+  let result : Array[String] = []
+  let mut buf = StringBuilder::new()
+  for i = 0; i < s.length(); i = i + 1 {
+    let ch = s[i].to_int().unsafe_to_char()
+    if ch == '\n' {
+      result.push(buf.to_string())
+      buf = StringBuilder::new()
+    } else {
+      buf.write_char(ch)
+    }
+  }
+  result.push(buf.to_string())
+  result
+}
+
+///|
 fn literal_block_to_doc(s : String) -> @pretty.Doc {
-  @pretty.concat([@pretty.text("|"), @pretty.hardline(), @pretty.text(s)])
+  let lines = split_newlines(s)
+  if lines.is_empty() {
+    return @pretty.concat([@pretty.text("|"), @pretty.hardline()])
+  }
+  let all_docs : Array[@pretty.Doc] = []
+  for i = 0; i < lines.length(); i = i + 1 {
+    let line = lines[i]
+    all_docs.push(@pretty.concat([@pretty.text("  "), @pretty.text(line), @pretty.hardline()]))
+  }
+  @pretty.concat([
+    @pretty.text("|"),
+    @pretty.hardline(),
+    @pretty.concat(all_docs),
+  ])
 }
 
 ///|
 fn folded_block_to_doc(s : String) -> @pretty.Doc {
-  @pretty.concat([@pretty.text(">"), @pretty.hardline(), @pretty.text(s)])
+  let lines = split_newlines(s)
+  if lines.is_empty() {
+    return @pretty.concat([@pretty.text(">"), @pretty.hardline()])
+  }
+  let all_docs : Array[@pretty.Doc] = []
+  for i = 0; i < lines.length(); i = i + 1 {
+    let line = lines[i]
+    all_docs.push(@pretty.concat([@pretty.text("  "), @pretty.text(line), @pretty.hardline()]))
+  }
+  @pretty.concat([
+    @pretty.text(">"),
+    @pretty.hardline(),
+    @pretty.concat(all_docs),
+  ])
 }
 
 ///|
