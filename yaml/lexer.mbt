@@ -430,8 +430,32 @@ fn Lexer::lex_literal_block(self : Lexer, start : @common.Pos) -> Token {
       }
     }
   }
+  // Strip trailing newline added by the loop (YAML literal blocks don't have trailing newlines in content)
+  let content = buf.to_string()
+  let len = content.length()
+  let last_idx = len - 1
+  let stripped = if len > 0 {
+    let last_char = content[last_idx].to_int().unsafe_to_char()
+    if last_char == '\n' {
+      if len > 1 {
+        let second_idx = len - 2
+        let second_last = content[second_idx].to_int().unsafe_to_char()
+        if second_last == '\r' {
+          content.substring(end=second_idx)
+        } else {
+          content.substring(end=last_idx)
+        }
+      } else {
+        ""
+      }
+    } else {
+      content
+    }
+  } else {
+    content
+  }
   Token::new(
-    LiteralBlock(buf.to_string()),
+    LiteralBlock(stripped),
     @common.Span::new(start, self.current_pos()),
   )
 }
