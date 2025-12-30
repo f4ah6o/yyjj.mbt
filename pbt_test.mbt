@@ -27,6 +27,7 @@ fn strip_jsonc_trivia(node : @jsonc.JsonNode) -> @jsonc.JsonNode {
 /// Strip trivia from YamlNode for structural comparison
 fn strip_yaml_trivia(node : @yaml.YamlNode) -> @yaml.YamlNode {
   let empty = @common.Trivia::empty()
+  let flow = @yaml.YamlCollectionStyle::flow()
   match node {
     @yaml.YNull(_) => @yaml.YamlNode::null_with_trivia(empty)
     @yaml.YBool(v, _) => @yaml.YamlNode::bool_with_trivia(v, empty)
@@ -34,7 +35,9 @@ fn strip_yaml_trivia(node : @yaml.YamlNode) -> @yaml.YamlNode {
     @yaml.YString(v, style, _) => @yaml.YamlNode::string_with_trivia(v, style, empty)
     @yaml.YSequence(elements, style, _) => {
       let stripped = elements.map(strip_yaml_trivia)
-      @yaml.YamlNode::sequence_with_style(stripped, style, empty)
+      // Empty collections are normalized to Flow style (YAML spec has no block empty representation)
+      let normalized_style = if elements.is_empty() { flow } else { style }
+      @yaml.YamlNode::sequence_with_style(stripped, normalized_style, empty)
     }
     @yaml.YMapping(pairs, style, _) => {
       let stripped = pairs.map(fn(kv) {
@@ -44,7 +47,9 @@ fn strip_yaml_trivia(node : @yaml.YamlNode) -> @yaml.YamlNode {
           strip_yaml_trivia(kv.value),
         )
       })
-      @yaml.YamlNode::mapping_with_style(stripped, style, empty)
+      // Empty collections are normalized to Flow style (YAML spec has no block empty representation)
+      let normalized_style = if pairs.is_empty() { flow } else { style }
+      @yaml.YamlNode::mapping_with_style(stripped, normalized_style, empty)
     }
     @yaml.YAlias(name, _) => @yaml.YamlNode::alias_with_trivia(name, empty)
     @yaml.YAnchor(name, inner) => @yaml.YamlNode::anchor(name, strip_yaml_trivia(inner))

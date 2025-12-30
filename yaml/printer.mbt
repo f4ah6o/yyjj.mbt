@@ -180,19 +180,15 @@ fn literal_block_to_doc(s : String) -> @pretty.Doc {
 
 ///|
 fn folded_block_to_doc(s : String) -> @pretty.Doc {
-  let lines = split_newlines(s)
-  if lines.is_empty() {
+  // The lexer has already folded newlines to spaces
+  // So we just need to output the content as-is with proper indentation
+  if s.is_empty() {
     return @pretty.concat([@pretty.text(">"), @pretty.hardline()])
-  }
-  let all_docs : Array[@pretty.Doc] = []
-  for i = 0; i < lines.length(); i = i + 1 {
-    let line = lines[i]
-    all_docs.push(@pretty.concat([@pretty.text("  "), @pretty.text(line), @pretty.hardline()]))
   }
   @pretty.concat([
     @pretty.text(">"),
     @pretty.hardline(),
-    @pretty.concat(all_docs),
+    @pretty.concat([@pretty.text("  "), @pretty.text(s), @pretty.hardline()]),
   ])
 }
 
