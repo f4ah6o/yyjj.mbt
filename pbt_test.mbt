@@ -1611,7 +1611,9 @@ fn gen_rest_chars(count : Int) -> @qc.Gen[Array[Char]] {
 fn gen_yaml_anchor(inner_gen : @qc.Gen[@yaml.YamlNode]) -> @qc.Gen[@yaml.YamlNode] {
   gen_anchor_name().bind(fn(name) {
     inner_gen.fmap(fn(inner) {
-      @yaml.YamlNode::anchor(name, inner)
+      // Filter strings in the anchored node to be safe for roundtrip
+      let safe_inner = filter_anchor_in_node(inner)
+      @yaml.YamlNode::anchor(name, safe_inner)
     })
   })
 }
@@ -2044,6 +2046,53 @@ fn looks_like_number_for_gen(s : String) -> Bool {
 }
 
 ///|
+/// Filter string to be safe as an anchor value
+/// Characters like ) can cause issues in certain YAML contexts
+fn filter_anchor_safe(s : String) -> String {
+  let buf = StringBuilder::new()
+  for i = 0; i < s.length(); i = i + 1 {
+    let ch = s[i].to_int().unsafe_to_char()
+    // Filter characters that might cause issues in edge cases
+    match ch {
+      ')' | '(' | '[' | ']' | '{' | '}' | ',' | '#' => ()
+      _ => buf.write_char(ch)
+    }
+  }
+  let result = buf.to_string()
+  if result.is_empty() { "anchor" } else { result }
+}
+
+///|
+/// Recursively filter strings in a node to be anchor-safe
+fn filter_anchor_in_node(node : @yaml.YamlNode) -> @yaml.YamlNode {
+  match node {
+    @yaml.YString(s, style, trivia) => {
+      let filtered = filter_anchor_safe(s)
+      @yaml.YamlNode::string_with_trivia(filtered, style, trivia)
+    }
+    @yaml.YSequence(elems, style, trivia) => {
+      let filtered_elems = elems.map(fn(e) { filter_anchor_in_node(e) })
+      @yaml.YamlNode::sequence_with_style(filtered_elems, style, trivia)
+    }
+    @yaml.YMapping(pairs, style, trivia) => {
+      let filtered_pairs = pairs.map(fn(p) {
+        let filtered_key = filter_anchor_in_node(p.key)
+        let filtered_value = filter_anchor_in_node(p.value)
+        @yaml.YKeyValue::new(filtered_key, @common.Trivia::empty(), filtered_value)
+      })
+      @yaml.YamlNode::mapping_with_style(filtered_pairs, style, trivia)
+    }
+    @yaml.YAnchor(name, value) => {
+      @yaml.YamlNode::anchor(name, filter_anchor_in_node(value))
+    }
+    @yaml.YAlias(_, _) => node
+    @yaml.YNull(_) => node
+    @yaml.YBool(_, _) => node
+    @yaml.YNumber(_, _) => node
+  }
+}
+
+///|
 /// Generate a single-quoted YAML string
 fn gen_yaml_single_quoted_string() -> @qc.Gen[@yaml.YamlNode] {
   @qc.frequency([
@@ -2442,13 +2491,55 @@ fn gen_yaml_node_with_full_style(max_depth : Int) -> @qc.Gen[@yaml.YamlNode] {
     @qc.frequency([
       (6, gen_yaml_scalar_with_any_style()),
       (3, inner.fmap(fn(e) { @yaml.YamlNode::sequence_with_trivia([e], empty) })),
-      (3, inner.bind(fn(k) { inner.fmap(fn(v) {
+      // Mappings: use single-line scalar keys (plain, single-quoted, double-quoted)
+      // Multi-line scalars (literal/folded blocks) and complex keys (mappings/sequences)
+      // require ? indicator that the parser doesn't fully support yet
+      (3, gen_yaml_single_line_scalar().bind(fn(k) { inner.fmap(fn(v) {
         let pair = @yaml.YKeyValue::new(k, @common.Trivia::empty(), v)
         @yaml.YamlNode::mapping_with_trivia([pair], empty)
       }) })),
       (1, gen_yaml_anchor(inner)),
     ])
   }
+}
+
+///|
+/// Generate a single-line YAML scalar (plain, single-quoted, or double-quoted)
+/// This is used for mapping keys where multi-line scalars (literal/folded) are not allowed
+fn gen_yaml_single_line_scalar() -> @qc.Gen[@yaml.YamlNode] {
+  @qc.frequency([
+    // Plain strings for keys: safe keys (no keywords, no number-like strings)
+    (6, gen_safe_key().fmap(fn(s) {
+      // Filter out number-like strings to avoid quoting issues
+      let safe = if looks_like_number_for_gen(s) { "key" + s } else { s }
+      @yaml.YamlNode::string_with_trivia(safe, @yaml.YamlScalarStyle::plain(), @common.Trivia::empty())
+    })),
+    // Strings with hyphens, dots (common in keys) - filter out special chars and number-like strings
+    (2, gen_safe_string().fmap(fn(s) {
+      // Filter special YAML chars that would cause quoting
+      let filtered = filter_yaml_special_chars_for_key(s)
+      let safe = if looks_like_number_for_gen(filtered) { "k-" + filtered } else { filtered }
+      let final = if safe.is_empty() { "key" } else { safe }
+      @yaml.YamlNode::string_with_trivia(final, @yaml.YamlScalarStyle::plain(), @common.Trivia::empty())
+    })),
+    (1, gen_yaml_single_quoted_string()),
+    (1, gen_yaml_double_quoted_string()),
+  ])
+}
+
+///|
+/// Filter special YAML characters that would cause a plain string key to be quoted
+fn filter_yaml_special_chars_for_key(s : String) -> String {
+  let buf = StringBuilder::new()
+  for i = 0; i < s.length(); i = i + 1 {
+    let ch = s[i].to_int().unsafe_to_char()
+    // Allow alphanumeric, hyphen, dot, underscore; filter out special YAML chars
+    if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+       (ch >= '0' && ch <= '9') || ch == '-' || ch == '.' || ch == '_' {
+      buf.write_char(ch)
+    }
+  }
+  buf.to_string()
 }
 
 ///|

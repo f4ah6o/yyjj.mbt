@@ -617,24 +617,46 @@ fn Parser::parse_flow_mapping(
   let pairs : Array[YKeyValue] = []
   self.skip_trivia()
   while self.peek_kind() != Some(RBrace) && not(self.is_eof()) {
-    // Parse key with trivia
+    // Parse key - can be scalar or complex (flow mapping/sequence)
     let key_leading = self.flush_leading()
-    let (key_str, key_style) = match self.peek_kind() {
+    let key_node = match self.peek_kind() {
+      // Complex keys: flow mapping or flow sequence
+      Some(LBrace) | Some(LBracket) => {
+        match self.parse_value() {
+          Ok(v) => v
+          Err(e) => return Err(e)
+        }
+      }
+      // Scalar keys
       Some(PlainScalar(s)) => {
         let _ = self.advance()
-        (s, Plain)
+        YString(s, Plain, @common.Trivia::empty())
       }
       Some(SingleQuotedScalar(s)) => {
         let _ = self.advance()
-        (s, SingleQuoted)
+        YString(s, SingleQuoted, @common.Trivia::empty())
       }
       Some(DoubleQuotedScalar(s)) => {
         let _ = self.advance()
-        (s, DoubleQuoted)
+        YString(s, DoubleQuoted, @common.Trivia::empty())
       }
-      _ => break
+      Some(TrueValue(original)) => {
+        let _ = self.advance()
+        YString(original, Plain, @common.Trivia::empty())
+      }
+      Some(FalseValue(original)) => {
+        let _ = self.advance()
+        YString(original, Plain, @common.Trivia::empty())
+      }
+      Some(NullValue) => {
+        let _ = self.advance()
+        YString("null", Plain, @common.Trivia::empty())
+      }
+      _ => {
+        // Invalid key, break out of the loop
+        break
+      }
     }
-    let key_node = YString(key_str, key_style, @common.Trivia::empty())
 
     // Skip whitespace only to find colon - don't skip comments
     while self.peek_kind() is Some(Whitespace(_)) {
