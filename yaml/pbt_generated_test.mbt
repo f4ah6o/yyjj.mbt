@@ -1,0 +1,60 @@
+///|
+/// Property-Based Tests for yaml
+/// Auto-generated from yaml.pbt.mbt.md
+
+///|
+test "prop_parse_print_parse_roundtrip" {
+  // Test fixtures for round-trip
+  let fixtures = [
+    "null", "true", "false", "42", "-1", "3.14", "hello", "\"hello\"", "[]", "{}",
+    "- item1\n- item2\n- item3", "key: value", "key1: value1\nkey2: value2", "nested:\n  key: value",
+    "- 1\n- 2\n- 3",
+  ]
+  for source in fixtures {
+    let result1 = @yaml.parse(source)
+    guard result1 is Ok(node1) else { continue }
+    let printed = @yaml.print(node1)
+    let result2 = @yaml.parse(printed)
+    guard result2 is Ok(node2) else {
+      inspect(false, content="Failed to parse printed output for: " + source)
+      continue
+    }
+    let stripped1 = strip_yaml_trivia(node1)
+    let stripped2 = strip_yaml_trivia(node2)
+    assert_eq(stripped1, stripped2)
+  }
+}
+
+// Helper to strip trivia for structural comparison
+
+///|
+fn strip_yaml_trivia(node : @yaml.YamlNode) -> @yaml.YamlNode {
+  let empty = @common.Trivia::empty()
+  let flow = @yaml.YamlCollectionStyle::flow()
+  match node {
+    @yaml.YNull(_) => @yaml.YamlNode::null_with_trivia(empty)
+    @yaml.YBool(v, _) => @yaml.YamlNode::bool_with_trivia(v, empty)
+    @yaml.YNumber(v, _) => @yaml.YamlNode::number_with_trivia(v, empty)
+    @yaml.YString(v, style, _) =>
+      @yaml.YamlNode::string_with_trivia(v, style, empty)
+    @yaml.YSequence(elements, style, _) => {
+      let stripped = elements.map(strip_yaml_trivia)
+      let normalized_style = if elements.is_empty() { flow } else { style }
+      @yaml.YamlNode::sequence_with_style(stripped, normalized_style, empty)
+    }
+    @yaml.YMapping(pairs, style, _) => {
+      let stripped = pairs.map(fn(kv) {
+        @yaml.YKeyValue::new(
+          strip_yaml_trivia(kv.key),
+          empty,
+          strip_yaml_trivia(kv.value),
+        )
+      })
+      let normalized_style = if pairs.is_empty() { flow } else { style }
+      @yaml.YamlNode::mapping_with_style(stripped, normalized_style, empty)
+    }
+    @yaml.YAlias(name, _) => @yaml.YamlNode::alias_with_trivia(name, empty)
+    @yaml.YAnchor(name, inner) =>
+      @yaml.YamlNode::anchor(name, strip_yaml_trivia(inner))
+  }
+}
