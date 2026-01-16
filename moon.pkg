@@ -1,0 +1,29 @@
+import {
+  "f4ah6o/yyjj/common" as @common,
+  "f4ah6o/yyjj/jsonc" as @jsonc,
+  "f4ah6o/yyjj/yaml" as @yaml,
+  "f4ah6o/yyjj/transform" as @transform,
+  "moonbitlang/quickcheck" as @qc,
+}
+
+options(
+  link: {
+    "js": {
+      "exports": [
+        "jsonc_to_yaml",
+        "yaml_to_jsonc",
+        "parse_jsonc",
+        "parse_yaml",
+        "print_jsonc",
+        "print_yaml",
+        "transform_jsonc_to_yaml",
+        "transform_yaml_to_jsonc",
+        "jsonc_to_yaml_with_mapping",
+        "yaml_to_jsonc_with_mapping",
+        "create_comment_based_mappings",
+      ],
+      "format": "esm",
+      "use-js-builtin-string": true,
+    },
+  },
+)
