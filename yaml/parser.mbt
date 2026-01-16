@@ -768,8 +768,8 @@ fn Parser::parse_indented_mapping(
     // Exit if we've dedented past our level
     match self.peek_kind() {
       Some(Dedent(n)) => {
-        // Exit if dedented to or below our base level
-        if n <= base_indent {
+        // Exit if dedented below our base level
+        if n < base_indent {
           // Don't consume the dedent - let the caller handle it
           break
         }
