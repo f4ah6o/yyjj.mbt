@@ -8,11 +8,10 @@ test "yaml_parse_simple_mapping" {
 
 ///|
 test "yaml_parse_sequence" {
-  let source = (
+  let source =
     #|- item1
     #|- item2
     #|- item3
-  )
   let result = @yaml.parse(source)
   guard result is Ok(@yaml.YSequence(elements, _, _)) else { return }
   inspect(elements.length(), content="3")
@@ -119,7 +118,7 @@ test "yaml_parse_sibling_keys_with_empty_values" {
 /// This tests the case where a sequence is followed by a sibling key at the same level
 test "yaml_parse_github_actions_on_section" {
   // Simplified version of the copilot-setup-steps.yaml on: section
-  let yaml = (
+  let yaml =
     #|on:
     #|  workflow_dispatch:
     #|  push:
@@ -128,7 +127,6 @@ test "yaml_parse_github_actions_on_section" {
     #|  pull_request:
     #|    paths:
     #|      - file.yml
-  )
   let result = @yaml.parse(yaml)
   guard result is Ok(@yaml.YMapping(pairs, _, _)) else {
     println("Parse failed or not a mapping")
@@ -148,7 +146,7 @@ test "yaml_parse_github_actions_on_section" {
 ///|
 /// Test parsing the full structure of copilot-setup-steps.yaml
 test "yaml_parse_copilot_setup_steps" {
-  let yaml = (
+  let yaml =
     #|name: "Copilot Setup Steps"
     #|on:
     #|  workflow_dispatch:
@@ -161,7 +159,6 @@ test "yaml_parse_copilot_setup_steps" {
     #|jobs:
     #|  copilot-setup-steps:
     #|    runs-on: ubuntu-latest
-  )
   let result = @yaml.parse(yaml)
   guard result is Ok(@yaml.YMapping(pairs, _, _)) else {
     println("Parse failed or not a mapping")
@@ -187,13 +184,12 @@ test "yaml_parse_copilot_setup_steps" {
 /// Test parsing sequence items with multiple key-value pairs (GitHub Actions steps format)
 /// This is the main issue: steps array elements have multiple keys (name, uses, run)
 test "yaml_parse_sequence_item_with_multiple_keys" {
-  let yaml = (
+  let yaml =
     #|steps:
     #|  - name: checkout
     #|    uses: actions/checkout@v5
     #|  - name: setup
     #|    run: hello
-  )
   let result = @yaml.parse(yaml)
   guard result is Ok(@yaml.YMapping(pairs, _, _)) else {
     println("Parse failed or not a mapping")
@@ -225,13 +221,12 @@ test "yaml_parse_sequence_item_with_multiple_keys" {
 /// Test Issue #5: same-indent mapping entries should be siblings, not nested
 /// https://github.com/anthropics/yyjj.mbt/issues/5
 test "yaml_parse_sibling_mappings_same_indent" {
-  let yaml = (
+  let yaml =
     #|jobs:
     #|  build:
     #|    runs-on: ubuntu-latest
     #|  lint:
     #|    runs-on: ubuntu-latest
-  )
   let result = @yaml.parse(yaml)
   guard result is Ok(@yaml.YMapping(pairs, _, _)) else {
     println("Parse failed or not a mapping")

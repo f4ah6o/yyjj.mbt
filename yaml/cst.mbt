@@ -11,41 +11,48 @@ pub enum YamlScalarStyle {
 ///|
 /// YAML collection style (flow vs block)
 pub enum YamlCollectionStyle {
-  Block  // - item style (block)
-  Flow   // [item] or {key: value} style (flow)
+  Block // - item style (block)
+  Flow // [item] or {key: value} style (flow)
 } derive(Eq, Show, Arbitrary)
 
-///| Factory function for Block style
+///|
+/// Factory function for Block style
 pub fn YamlCollectionStyle::block() -> YamlCollectionStyle {
   Block
 }
 
-///| Factory function for Flow style
+///|
+/// Factory function for Flow style
 pub fn YamlCollectionStyle::flow() -> YamlCollectionStyle {
   Flow
 }
 
-///| Factory function for Plain style
+///|
+/// Factory function for Plain style
 pub fn YamlScalarStyle::plain() -> YamlScalarStyle {
   Plain
 }
 
-///| Factory function for SingleQuoted style
+///|
+/// Factory function for SingleQuoted style
 pub fn YamlScalarStyle::single_quoted() -> YamlScalarStyle {
   SingleQuoted
 }
 
-///| Factory function for DoubleQuoted style
+///|
+/// Factory function for DoubleQuoted style
 pub fn YamlScalarStyle::double_quoted() -> YamlScalarStyle {
   DoubleQuoted
 }
 
-///| Factory function for Literal style
+///|
+/// Factory function for Literal style
 pub fn YamlScalarStyle::literal() -> YamlScalarStyle {
   Literal
 }
 
-///| Factory function for Folded style
+///|
+/// Factory function for Folded style
 pub fn YamlScalarStyle::folded() -> YamlScalarStyle {
   Folded
 }
@@ -76,7 +83,7 @@ pub struct YKeyValue {
 pub fn YKeyValue::new(
   key : YamlNode,
   key_trivia : @common.Trivia,
-  value : YamlNode
+  value : YamlNode,
 ) -> YKeyValue {
   { key, key_trivia, value }
 }
@@ -140,49 +147,76 @@ pub fn YamlNode::null_with_trivia(trivia : @common.Trivia) -> YamlNode {
 
 ///|
 /// Create a boolean node with trivia
-pub fn YamlNode::bool_with_trivia(value : Bool, trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::bool_with_trivia(
+  value : Bool,
+  trivia : @common.Trivia,
+) -> YamlNode {
   YBool(value, trivia)
 }
 
 ///|
 /// Create a number node with trivia
-pub fn YamlNode::number_with_trivia(value : String, trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::number_with_trivia(
+  value : String,
+  trivia : @common.Trivia,
+) -> YamlNode {
   YNumber(value, trivia)
 }
 
 ///|
 /// Create a string node with trivia
-pub fn YamlNode::string_with_trivia(value : String, style : YamlScalarStyle, trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::string_with_trivia(
+  value : String,
+  style : YamlScalarStyle,
+  trivia : @common.Trivia,
+) -> YamlNode {
   YString(value, style, trivia)
 }
 
 ///|
 /// Create a sequence node with trivia (defaults to block style)
-pub fn YamlNode::sequence_with_trivia(elements : Array[YamlNode], trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::sequence_with_trivia(
+  elements : Array[YamlNode],
+  trivia : @common.Trivia,
+) -> YamlNode {
   YSequence(elements, YamlCollectionStyle::block(), trivia)
 }
 
 ///|
 /// Create a sequence node with style and trivia
-pub fn YamlNode::sequence_with_style(elements : Array[YamlNode], style : YamlCollectionStyle, trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::sequence_with_style(
+  elements : Array[YamlNode],
+  style : YamlCollectionStyle,
+  trivia : @common.Trivia,
+) -> YamlNode {
   YSequence(elements, style, trivia)
 }
 
 ///|
 /// Create a mapping node with trivia (defaults to block style)
-pub fn YamlNode::mapping_with_trivia(pairs : Array[YKeyValue], trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::mapping_with_trivia(
+  pairs : Array[YKeyValue],
+  trivia : @common.Trivia,
+) -> YamlNode {
   YMapping(pairs, YamlCollectionStyle::block(), trivia)
 }
 
 ///|
 /// Create a mapping node with style and trivia
-pub fn YamlNode::mapping_with_style(pairs : Array[YKeyValue], style : YamlCollectionStyle, trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::mapping_with_style(
+  pairs : Array[YKeyValue],
+  style : YamlCollectionStyle,
+  trivia : @common.Trivia,
+) -> YamlNode {
   YMapping(pairs, style, trivia)
 }
 
 ///|
 /// Create an alias node with trivia
-pub fn YamlNode::alias_with_trivia(name : String, trivia : @common.Trivia) -> YamlNode {
+pub fn YamlNode::alias_with_trivia(
+  name : String,
+  trivia : @common.Trivia,
+) -> YamlNode {
   YAlias(name, trivia)
 }
 

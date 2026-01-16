@@ -17,14 +17,16 @@ fn transform_node(node : @jsonc.JsonNode) -> @yaml.YamlNode {
       @yaml.YamlNode::sequence_with_trivia(yaml_elements, trivia)
     }
     @jsonc.JObject(props, _) => {
-      let pairs = props.map(
-        fn(p) {
-          let key = @yaml.YamlNode::string_with_trivia(p.key, @yaml.YamlScalarStyle::plain(), @common.Trivia::empty())
-          let key_trivia = transform_trivia(p.key_trivia)
-          let value = transform_node(p.value)
-          @yaml.YKeyValue::new(key, key_trivia, value)
-        },
-      )
+      let pairs = props.map(fn(p) {
+        let key = @yaml.YamlNode::string_with_trivia(
+          p.key,
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        )
+        let key_trivia = transform_trivia(p.key_trivia)
+        let value = transform_node(p.value)
+        @yaml.YKeyValue::new(key, key_trivia, value)
+      })
       @yaml.YamlNode::mapping_with_trivia(pairs, trivia)
     }
   }
@@ -103,16 +105,14 @@ fn transform_comment(comment : @common.Comment) -> Array[@common.Comment] {
     @common.BlockComment => {
       // Split block comment into multiple line comments
       let lines = split_lines(comment.content)
-      lines.mapi(
-        fn(i, line) {
-          @common.Comment::new(
-            line,
-            @common.CommentKind::line(),
-            comment.span,
-            i > 0,
-          )
-        },
-      )
+      lines.mapi(fn(i, line) {
+        @common.Comment::new(
+          line,
+          @common.CommentKind::line(),
+          comment.span,
+          i > 0,
+        )
+      })
     }
   }
 }

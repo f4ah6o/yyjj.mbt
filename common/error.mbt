@@ -34,18 +34,18 @@ pub struct ParseError {
 
 ///|
 /// Create a new parse error
-pub fn ParseError::new(kind : ParseErrorKind, span : Span, message : String) -> ParseError {
+pub fn ParseError::new(
+  kind : ParseErrorKind,
+  span : Span,
+  message : String,
+) -> ParseError {
   { kind, span, message }
 }
 
 ///|
 /// Create an unexpected token error
 pub fn ParseError::unexpected_token(token : String, span : Span) -> ParseError {
-  {
-    kind: UnexpectedToken(token),
-    span,
-    message: "unexpected token: " + token,
-  }
+  { kind: UnexpectedToken(token), span, message: "unexpected token: " + token }
 }
 
 ///|
@@ -93,15 +93,15 @@ pub fn ParseError::unresolved_alias(name : String, span : Span) -> ParseError {
 pub fn ParseError::invalid_indentation(
   expected : Int,
   actual : Int,
-  span : Span
+  span : Span,
 ) -> ParseError {
   {
     kind: InvalidIndentation(expected, actual),
     span,
     message: "invalid indentation: expected " +
-      expected.to_string() +
-      " spaces, got " +
-      actual.to_string(),
+    expected.to_string() +
+    " spaces, got " +
+    actual.to_string(),
   }
 }
 

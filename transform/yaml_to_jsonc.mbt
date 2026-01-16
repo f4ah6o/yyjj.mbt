@@ -8,7 +8,7 @@ pub fn yaml_to_jsonc(node : @yaml.YamlNode) -> @jsonc.JsonNode {
 ///|
 fn transform_yaml_node(
   node : @yaml.YamlNode,
-  anchors : Map[String, @yaml.YamlNode]
+  anchors : Map[String, @yaml.YamlNode],
 ) -> @jsonc.JsonNode {
   let trivia = transform_yaml_trivia(node.trivia())
   match node {
@@ -21,26 +21,22 @@ fn transform_yaml_node(
       @jsonc.JsonNode::array_with_trivia(json_elements, trivia)
     }
     @yaml.YMapping(pairs, _, _) => {
-      let props = pairs.map(
-        fn(p) {
-          let key = extract_string_key(p.key)
-          let key_trivia = transform_yaml_trivia(p.key_trivia)
-          let value = transform_yaml_node(p.value, anchors)
-          @jsonc.JProperty::new(key, key_trivia, value)
-        },
-      )
+      let props = pairs.map(fn(p) {
+        let key = extract_string_key(p.key)
+        let key_trivia = transform_yaml_trivia(p.key_trivia)
+        let value = transform_yaml_node(p.value, anchors)
+        @jsonc.JProperty::new(key, key_trivia, value)
+      })
       @jsonc.JsonNode::object_with_trivia(props, trivia)
     }
-    @yaml.YAlias(name, _) => {
+    @yaml.YAlias(name, _) =>
       // Look up the anchor and expand it
       match anchors.get(name) {
         Some(anchored_node) => transform_yaml_node(anchored_node, anchors)
-        None => {
+        None =>
           // If anchor not found, produce a string with the alias name as fallback
           @jsonc.JsonNode::string_with_trivia("*" + name, trivia)
-        }
       }
-    }
     @yaml.YAnchor(name, value) => {
       // Register the anchor and transform the value
       anchors.set(name, value)

@@ -32,7 +32,7 @@ pub fn Comment::new(
   content : String,
   kind : CommentKind,
   span : Span,
-  preceding_newline : Bool
+  preceding_newline : Bool,
 ) -> Comment {
   { content, kind, span, preceding_newline }
 }
@@ -64,7 +64,10 @@ pub fn Trivia::with_trailing(trailing : Array[Comment]) -> Trivia {
 
 ///|
 /// Create trivia with both leading and trailing comments
-pub fn Trivia::new(leading : Array[Comment], trailing : Array[Comment]) -> Trivia {
+pub fn Trivia::new(
+  leading : Array[Comment],
+  trailing : Array[Comment],
+) -> Trivia {
   { leading, trailing }
 }
 

@@ -143,7 +143,7 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
         }
         break // Only one trailing comment per node
       }
-      Some(BlockComment(content)) => {
+      Some(BlockComment(content)) =>
         // Block comment on same line is trailing
         if not(self.saw_newline) {
           let tok = self.advance()
@@ -167,7 +167,6 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
           )
           self.pending_trivia.push(comment)
         }
-      }
       Some(Newline) => {
         let _ = self.advance()
         self.saw_newline = true
@@ -182,7 +181,9 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
 ///|
 /// Collect trailing comments after a closing bracket/brace
 /// This handles the case where the comment appears on the same line or the next line after ]
-fn Parser::collect_trailing_after_bracket(self : Parser) -> Array[@common.Comment] {
+fn Parser::collect_trailing_after_bracket(
+  self : Parser,
+) -> Array[@common.Comment] {
   let trailing = self.collect_trailing()
   // After normal trailing collection, check for comments on the next line
   // OR comments immediately after ] (without whitespace)
@@ -214,6 +215,7 @@ fn Parser::collect_trailing_after_bracket(self : Parser) -> Array[@common.Commen
       }
       Some(Whitespace(_)) => {
         let _ = self.advance()
+
       }
       Some(Newline) => {
         let _ = self.advance()
@@ -256,7 +258,7 @@ fn Parser::collect_trailing_after_bracket(self : Parser) -> Array[@common.Commen
 /// Expect a specific token kind
 fn Parser::expect(
   self : Parser,
-  kind : TokenKind
+  kind : TokenKind,
 ) -> Result[Token, @common.ParseError] {
   self.skip_trivia()
   match self.peek() {
@@ -265,9 +267,7 @@ fn Parser::expect(
       Ok(t)
     }
     Some(t) =>
-      Err(
-        @common.ParseError::unexpected_token(token_kind_name(t.kind), t.span),
-      )
+      Err(@common.ParseError::unexpected_token(token_kind_name(t.kind), t.span))
     None => Err(@common.ParseError::unexpected_eof(self.current_span()))
   }
 }
@@ -354,7 +354,7 @@ fn Parser::parse_value(self : Parser) -> Result[JsonNode, @common.ParseError] {
 /// Parse an object
 fn Parser::parse_object(
   self : Parser,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[JsonNode, @common.ParseError] {
   let _ = self.advance() // consume {
   let properties : Array[JProperty] = []
@@ -427,7 +427,7 @@ fn Parser::parse_object(
 /// Parse an array
 fn Parser::parse_array(
   self : Parser,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[JsonNode, @common.ParseError] {
   let _ = self.advance() // consume [
   let elements : Array[JsonNode] = []

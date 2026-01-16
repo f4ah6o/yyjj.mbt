@@ -114,11 +114,14 @@ fn Lexer::handle_indent(self : Lexer) -> Token? {
     // Indent: consume spaces first
     for i = 0; i < spaces; i = i + 1 {
       let _ = self.advance()
+
     }
     self.indent_stack.push(spaces)
     // Mark that we're no longer at line start after processing indent
     self.at_line_start = false
-    Some(Token::new(Indent(spaces), @common.Span::new(start, self.current_pos())))
+    Some(
+      Token::new(Indent(spaces), @common.Span::new(start, self.current_pos())),
+    )
   } else if spaces < current {
     // Dedent: pop ONE level at a time
     // DON'T consume spaces yet - we may need to emit more dedents
@@ -131,6 +134,7 @@ fn Lexer::handle_indent(self : Lexer) -> Token? {
       // Final dedent: consume the spaces now
       for i = 0; i < spaces; i = i + 1 {
         let _ = self.advance()
+
       }
       self.at_line_start = false
     }
@@ -141,6 +145,7 @@ fn Lexer::handle_indent(self : Lexer) -> Token? {
     // Consume the spaces
     for i = 0; i < spaces; i = i + 1 {
       let _ = self.advance()
+
     }
     self.at_line_start = false
     None
@@ -160,7 +165,10 @@ pub fn Lexer::next_token(self : Lexer) -> Token {
       // At EOF, emit dedents for remaining indentation
       if self.indent_stack.length() > 1 {
         self.indent_stack.pop() |> ignore
-        return Token::new(Dedent(self.current_indent()), @common.Span::at(start))
+        return Token::new(
+          Dedent(self.current_indent()),
+          @common.Span::at(start),
+        )
       }
       Token::new(Eof, @common.Span::at(start))
     }
@@ -182,22 +190,29 @@ pub fn Lexer::next_token(self : Lexer) -> Token {
         // Whitespace (within line, not at start)
         ' ' | '\t' => {
           let ws = self.skip_while(fn(c) { c == ' ' || c == '\t' })
-          Token::new(Whitespace(ws), @common.Span::new(start, self.current_pos()))
+          Token::new(
+            Whitespace(ws),
+            @common.Span::new(start, self.current_pos()),
+          )
         }
         // Comment
         '#' => {
           let _ = self.advance()
           let content = self.skip_while(fn(c) { c != '\n' && c != '\r' })
-          Token::new(Comment(content), @common.Span::new(start, self.current_pos()))
+          Token::new(
+            Comment(content),
+            @common.Span::new(start, self.current_pos()),
+          )
         }
         // Structural
         ':' => {
           let _ = self.advance()
           Token::new(Colon, @common.Span::new(start, self.current_pos()))
         }
-        '-' => {
+        '-' =>
           // Could be sequence dash or part of a number
-          if self.peek_at(1) == Some(' ') || self.peek_at(1) == Some('\n') ||
+          if self.peek_at(1) == Some(' ') ||
+            self.peek_at(1) == Some('\n') ||
             self.peek_at(1) is None {
             let _ = self.advance()
             Token::new(Dash, @common.Span::new(start, self.current_pos()))
@@ -214,14 +229,16 @@ pub fn Lexer::next_token(self : Lexer) -> Token {
             // Negative number or plain scalar
             self.lex_plain_scalar(start)
           }
-        }
         '.' =>
           // Document end ...
           if self.peek_at(1) == Some('.') && self.peek_at(2) == Some('.') {
             let _ = self.advance()
             let _ = self.advance()
             let _ = self.advance()
-            Token::new(DocumentEnd, @common.Span::new(start, self.current_pos()))
+            Token::new(
+              DocumentEnd,
+              @common.Span::new(start, self.current_pos()),
+            )
           } else {
             self.lex_plain_scalar(start)
           }
@@ -528,7 +545,7 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
     // Check for terminators
     match ch {
       '\n' | '\r' | '{' | '}' | '[' | ']' | ',' => break
-      ':' => {
+      ':' =>
         // Check if followed by space, newline, or EOF
         if self.peek_at(1) is Some(next) {
           if next == ' ' || next == '\t' || next == '\n' || next == '\r' {
@@ -537,12 +554,13 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
           // Otherwise, : is part of the scalar
           last_non_space_pos = self.pos + 1
           let _ = self.advance()
+
         } else {
           // EOF after :, colon is part of the scalar
           last_non_space_pos = self.pos + 1
           let _ = self.advance()
+
         }
-      }
       ' ' | '\t' => {
         // Check if followed by # (comment start)
         if self.peek_at(1) == Some('#') {
@@ -550,6 +568,7 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
         }
         // Otherwise, space is part of the scalar
         let _ = self.advance()
+
       }
       '#' =>
         // # at start of value is a comment
@@ -557,6 +576,7 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
       _ => {
         last_non_space_pos = self.pos + 1
         let _ = self.advance()
+
       }
     }
   }

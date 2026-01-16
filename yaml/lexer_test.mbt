@@ -2,28 +2,26 @@
 test "yaml_lex_simple_mapping" {
   let lexer = @yaml.Lexer::new("key: value")
   let tokens = lexer.tokenize()
-  let kinds = tokens
-    .filter(fn(t) { not(t.is_trivia()) })
-    .map(fn(t) { t.kind })
-  inspect(kinds, content="[PlainScalar(\"key\"), Colon, PlainScalar(\"value\"), Eof]")
+  let kinds = tokens.filter(fn(t) { not(t.is_trivia()) }).map(fn(t) { t.kind })
+  inspect(
+    kinds,
+    content="[PlainScalar(\"key\"), Colon, PlainScalar(\"value\"), Eof]",
+  )
 }
 
 ///|
 test "yaml_lex_sequence" {
-  let source = (
+  let source =
     #|- item1
     #|- item2
-  )
   let lexer = @yaml.Lexer::new(source)
   let tokens = lexer.tokenize()
-  let dashes = tokens.filter(
-    fn(t) {
-      match t.kind {
-        @yaml.Dash => true
-        _ => false
-      }
-    },
-  )
+  let dashes = tokens.filter(fn(t) {
+    match t.kind {
+      @yaml.Dash => true
+      _ => false
+    }
+  })
   inspect(dashes.length(), content="2")
 }
 
@@ -53,28 +51,23 @@ test "yaml_lex_double_quoted" {
 
 ///|
 test "yaml_lex_anchor_alias" {
-  let source = (
+  let source =
     #|&anchor value
     #|*anchor
-  )
   let lexer = @yaml.Lexer::new(source)
   let tokens = lexer.tokenize()
-  let anchors = tokens.filter(
-    fn(t) {
-      match t.kind {
-        @yaml.Anchor(_) => true
-        _ => false
-      }
-    },
-  )
-  let aliases = tokens.filter(
-    fn(t) {
-      match t.kind {
-        @yaml.Alias(_) => true
-        _ => false
-      }
-    },
-  )
+  let anchors = tokens.filter(fn(t) {
+    match t.kind {
+      @yaml.Anchor(_) => true
+      _ => false
+    }
+  })
+  let aliases = tokens.filter(fn(t) {
+    match t.kind {
+      @yaml.Alias(_) => true
+      _ => false
+    }
+  })
   inspect(anchors.length(), content="1")
   inspect(aliases.length(), content="1")
 }

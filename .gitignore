@@ -1,11 +1,13 @@
 .DS_Store
-target/
 .mooncakes/
 .moonagent/
 
 # Build outputs
 dist/
 *.mbti
+target/
+target
+_build/
 
 # Dependencies
 node_modules/

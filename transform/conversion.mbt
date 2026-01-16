@@ -4,7 +4,7 @@
 ///|
 /// Convert JSONC to YAML with position mapping
 pub fn jsonc_to_yaml_with_mapping(
-  input : String
+  input : String,
 ) -> Result[@common.ConversionResult, @common.ParseError] {
   // Parse JSONC
   match @jsonc.parse(input) {
@@ -19,7 +19,6 @@ pub fn jsonc_to_yaml_with_mapping(
       // For now, create empty mappings
       // TODO: Implement position tracking during printing
       let mappings : Array[@common.SourceMapping] = []
-
       Ok(@common.ConversionResult::new(output, mappings))
     }
     Err(e) => Err(e)
@@ -29,7 +28,7 @@ pub fn jsonc_to_yaml_with_mapping(
 ///|
 /// Convert YAML to JSONC with position mapping
 pub fn yaml_to_jsonc_with_mapping(
-  input : String
+  input : String,
 ) -> Result[@common.ConversionResult, @common.ParseError] {
   // Parse YAML
   match @yaml.parse(input) {
@@ -43,7 +42,6 @@ pub fn yaml_to_jsonc_with_mapping(
       // For now, create empty mappings
       // TODO: Implement position tracking during printing
       let mappings : Array[@common.SourceMapping] = []
-
       Ok(@common.ConversionResult::new(output, mappings))
     }
     Err(e) => Err(e)
@@ -56,7 +54,7 @@ pub fn yaml_to_jsonc_with_mapping(
 pub fn create_comment_based_mappings(
   input : String,
   _output : String,
-  is_jsonc_input : Bool
+  is_jsonc_input : Bool,
 ) -> Array[@common.SourceMapping] {
   // Extract anchors from input
   let anchors = if is_jsonc_input {
@@ -73,7 +71,10 @@ pub fn create_comment_based_mappings(
 
   // For each anchor (comment span), create a mapping
   // Build array using fold-like approach
-  fn build_mappings(index : Int, acc : Array[@common.SourceMapping]) -> Array[@common.SourceMapping] {
+  fn build_mappings(
+    index : Int,
+    acc : Array[@common.SourceMapping],
+  ) -> Array[@common.SourceMapping] {
     if index >= anchors.length() {
       acc
     } else {
@@ -91,10 +92,7 @@ pub fn create_comment_based_mappings(
         source_end.offset,
       )
       let mapping = @common.SourceMapping::new(
-        source_start,
-        source_end,
-        target_start,
-        target_end,
+        source_start, source_end, target_start, target_end,
       )
       build_mappings(index + 1, acc + [mapping])
     }

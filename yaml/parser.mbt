@@ -137,10 +137,9 @@ fn Parser::skip_trivia(self : Parser) -> Unit {
         self.pending_trivia.push(comment)
         self.saw_newline = true
       }
-      Some(Indent(_)) | Some(Dedent(_)) => {
+      Some(Indent(_)) | Some(Dedent(_)) =>
         // Keep indent/dedent tokens for structure
         break
-      }
       _ => break
     }
   }
@@ -214,14 +213,16 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       }
     }
     Some(Dash) => self.parse_block_sequence(leading)
-    Some(PlainScalar(_)) | Some(SingleQuotedScalar(_)) | Some(DoubleQuotedScalar(_)) =>
-      self.parse_scalar_or_mapping(leading)
+    Some(PlainScalar(_))
+    | Some(SingleQuotedScalar(_))
+    | Some(DoubleQuotedScalar(_)) => self.parse_scalar_or_mapping(leading)
     // YAML 1.1 keywords can be mapping keys - check for colon after them
     Some(NullValue) => {
       let _ = self.advance()
       // Check if this is a mapping key
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
+
       }
       if self.peek_kind() == Some(Colon) {
         self.parse_mapping_with_first_key("null", Plain, leading)
@@ -235,6 +236,7 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       // Check if this is a mapping key (e.g., "on:" in GitHub Actions)
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
+
       }
       if self.peek_kind() == Some(Colon) {
         // Preserve the original keyword (on, yes, true, etc.) as the key
@@ -249,6 +251,7 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       // Check if this is a mapping key
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
+
       }
       if self.peek_kind() == Some(Colon) {
         // Preserve the original keyword (off, no, false, etc.) as the key
@@ -284,8 +287,7 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       let trailing = self.collect_trailing()
       Ok(YAlias(name, @common.Trivia::new(leading, trailing)))
     }
-    Some(Eof) =>
-      Ok(YNull(@common.Trivia::new(leading, []))) // Empty document
+    Some(Eof) => Ok(YNull(@common.Trivia::new(leading, []))) // Empty document
     // Dedent or Newline without value means implicit null
     Some(Dedent(_)) | Some(Newline) =>
       Ok(YNull(@common.Trivia::new(leading, [])))
@@ -303,7 +305,7 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
 ///|
 fn Parser::parse_scalar_or_mapping(
   self : Parser,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[YamlNode, @common.ParseError] {
   // Get the scalar value
   let (scalar, style) = match self.peek_kind() {
@@ -318,6 +320,7 @@ fn Parser::parse_scalar_or_mapping(
   // This is critical for multi-key mappings
   while self.peek_kind() is Some(Whitespace(_)) {
     let _ = self.advance()
+
   }
   if self.peek_kind() == Some(Colon) {
     // This is a mapping
@@ -340,7 +343,7 @@ fn Parser::parse_mapping_with_first_key(
   self : Parser,
   first_key : String,
   key_style : YamlScalarStyle,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[YamlNode, @common.ParseError] {
   let pairs : Array[YKeyValue] = []
   let mut key = first_key
@@ -348,7 +351,7 @@ fn Parser::parse_mapping_with_first_key(
   let mut key_leading = leading
   // Track the base indentation level for this mapping
   // If we dedent to or below this level, the mapping is complete
-  let mut base_indent : Int = -1  // -1 means not set yet
+  let mut base_indent : Int = -1 // -1 means not set yet
   while true {
     // Expect colon
     if self.peek_kind() != Some(Colon) {
@@ -433,12 +436,14 @@ fn Parser::parse_mapping_with_first_key(
               // Consume any remaining dedents
               while self.peek_kind() is Some(Dedent(_)) {
                 let _ = self.advance()
+
               }
             }
             break
           }
           // Consume this dedent (at or above base indent)
           let _ = self.advance()
+
         }
         self.skip_trivia()
         let next_kind = self.peek_kind()
@@ -462,9 +467,9 @@ fn Parser::parse_mapping_with_first_key(
       // Check if this Indent is followed by a potential key (sibling at same level)
       // We need to look past the Indent to see what's next
       let temp_pos = self.pos
-      let _ = self.advance()  // consume Indent temporarily
+      let _ = self.advance() // consume Indent temporarily
       let has_sibling_key = is_potential_key(self.peek_kind())
-      self.pos = temp_pos  // restore position
+      self.pos = temp_pos // restore position
       if has_sibling_key {
         // This Indent precedes a sibling key, consume it and continue
         let _ = self.advance()
@@ -529,7 +534,7 @@ fn Parser::parse_mapping_with_first_key(
 ///|
 fn Parser::parse_block_sequence(
   self : Parser,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[YamlNode, @common.ParseError] {
   let elements : Array[YamlNode] = []
   // Track the base indent level of this sequence
@@ -565,6 +570,7 @@ fn Parser::parse_block_sequence(
         }
         if should_consume {
           let _ = self.advance()
+
         }
         // Check if there's another dash at this level (sibling sequence item)
         // This handles the case where a nested mapping exits and we're back at sequence level
@@ -577,13 +583,19 @@ fn Parser::parse_block_sequence(
       _ => ()
     }
   }
-  Ok(YSequence(elements, YamlCollectionStyle::Block, @common.Trivia::new(leading, [])))
+  Ok(
+    YSequence(
+      elements,
+      YamlCollectionStyle::Block,
+      @common.Trivia::new(leading, []),
+    ),
+  )
 }
 
 ///|
 fn Parser::parse_flow_sequence(
   self : Parser,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[YamlNode, @common.ParseError] {
   let _ = self.advance() // consume [
   let elements : Array[YamlNode] = []
@@ -605,13 +617,19 @@ fn Parser::parse_flow_sequence(
 
   }
   let trailing = self.collect_trailing()
-  Ok(YSequence(elements, YamlCollectionStyle::Flow, @common.Trivia::new(leading, trailing)))
+  Ok(
+    YSequence(
+      elements,
+      YamlCollectionStyle::Flow,
+      @common.Trivia::new(leading, trailing),
+    ),
+  )
 }
 
 ///|
 fn Parser::parse_flow_mapping(
   self : Parser,
-  leading : Array[@common.Comment]
+  leading : Array[@common.Comment],
 ) -> Result[YamlNode, @common.ParseError] {
   let _ = self.advance() // consume {
   let pairs : Array[YKeyValue] = []
@@ -621,12 +639,11 @@ fn Parser::parse_flow_mapping(
     let key_leading = self.flush_leading()
     let key_node = match self.peek_kind() {
       // Complex keys: flow mapping or flow sequence
-      Some(LBrace) | Some(LBracket) => {
+      Some(LBrace) | Some(LBracket) =>
         match self.parse_value() {
           Ok(v) => v
           Err(e) => return Err(e)
         }
-      }
       // Scalar keys
       Some(PlainScalar(s)) => {
         let _ = self.advance()
@@ -652,15 +669,15 @@ fn Parser::parse_flow_mapping(
         let _ = self.advance()
         YString("null", Plain, @common.Trivia::empty())
       }
-      _ => {
+      _ =>
         // Invalid key, break out of the loop
         break
-      }
     }
 
     // Skip whitespace only to find colon - don't skip comments
     while self.peek_kind() is Some(Whitespace(_)) {
       let _ = self.advance()
+
     }
 
     // Collect trailing comments after colon
@@ -671,7 +688,6 @@ fn Parser::parse_flow_mapping(
       []
     }
     let key_trivia = @common.Trivia::new(key_leading, key_trailing)
-
     self.skip_trivia()
     // Parse value
     let value = match self.parse_value() {
@@ -690,14 +706,24 @@ fn Parser::parse_flow_mapping(
 
   }
   let trailing = self.collect_trailing()
-  Ok(YMapping(pairs, YamlCollectionStyle::Flow, @common.Trivia::new(leading, trailing)))
+  Ok(
+    YMapping(
+      pairs,
+      YamlCollectionStyle::Flow,
+      @common.Trivia::new(leading, trailing),
+    ),
+  )
 }
 
 ///|
 fn is_potential_key(kind : TokenKind?) -> Bool {
   match kind {
-    Some(PlainScalar(_)) | Some(SingleQuotedScalar(_)) | Some(DoubleQuotedScalar(_)) |
-    Some(TrueValue(_)) | Some(FalseValue(_)) | Some(NullValue) => true
+    Some(PlainScalar(_))
+    | Some(SingleQuotedScalar(_))
+    | Some(DoubleQuotedScalar(_))
+    | Some(TrueValue(_))
+    | Some(FalseValue(_))
+    | Some(NullValue) => true
     _ => false
   }
 }
@@ -729,14 +755,13 @@ fn Parser::is_sibling_key_ahead(self : Parser) -> Bool {
 fn Parser::parse_indented_mapping(
   self : Parser,
   leading : Array[@common.Comment],
-  base_indent : Int  // Explicit indent level from caller
+  base_indent : Int, // Explicit indent level from caller
 ) -> Result[YamlNode, @common.ParseError] {
   // Parse an indented block mapping by collecting all keys at this level
   let pairs : Array[YKeyValue] = []
   let mut key = ""
   let mut key_style : YamlScalarStyle = Plain
   let mut key_leading = self.flush_leading()
-
   while true {
 
     // Check for dedent at caller level before parsing next key
@@ -770,7 +795,11 @@ fn Parser::parse_indented_mapping(
           match self.parse_block_sequence([]) {
             Ok(seq) => {
               // Replace the last pair's value with the sequence
-              let new_pair = YKeyValue::new(last_key, pairs[last_idx].key_trivia, seq)
+              let new_pair = YKeyValue::new(
+                last_key,
+                pairs[last_idx].key_trivia,
+                seq,
+              )
               pairs[last_idx] = new_pair
             }
             Err(e) => return Err(e)
@@ -786,6 +815,7 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
+
         }
       }
       Some(SingleQuotedScalar(s)) => {
@@ -796,6 +826,7 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
+
         }
       }
       Some(DoubleQuotedScalar(s)) => {
@@ -806,6 +837,7 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
+
         }
       }
       Some(TrueValue(original)) => {
@@ -816,6 +848,7 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
+
         }
       }
       Some(FalseValue(original)) => {
@@ -826,6 +859,7 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
+
         }
       }
       Some(NullValue) => {
@@ -836,6 +870,7 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
+
         }
       }
       Some(Indent(_)) => {
@@ -854,8 +889,7 @@ fn Parser::parse_indented_mapping(
     if self.peek_kind() != Some(Colon) {
       break
     }
-    let _ = self.advance()  // consume :
-
+    let _ = self.advance() // consume :
     let key_trailing = self.collect_trailing()
     let key_trivia = @common.Trivia::new(key_leading, key_trailing)
     let key_node = YString(key, key_style, @common.Trivia::empty())
@@ -881,7 +915,6 @@ fn Parser::parse_indented_mapping(
         Err(e) => return Err(e)
       }
     }
-
     pairs.push(YKeyValue::new(key_node, key_trivia, value))
 
     // Handle dedents - consume dedents but stop at base_indent level
@@ -935,8 +968,13 @@ fn Parser::parse_indented_mapping(
     }
     // Otherwise, continue for more keys
   }
-
-  Ok(YMapping(pairs, YamlCollectionStyle::Block, @common.Trivia::new(leading, [])))
+  Ok(
+    YMapping(
+      pairs,
+      YamlCollectionStyle::Block,
+      @common.Trivia::new(leading, []),
+    ),
+  )
 }
 
 ///|

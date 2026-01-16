@@ -15,13 +15,20 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
     YBool(false, _) => @pretty.text("false")
     YNumber(n, _) => @pretty.text(n)
     YString(s, style, _) => string_to_doc(s, style)
-    YSequence(elements, YamlCollectionStyle::Flow, _) => flow_sequence_to_doc(elements, indent)
-    YSequence(elements, YamlCollectionStyle::Block, _) => sequence_to_doc(elements, indent)
-    YMapping(pairs, YamlCollectionStyle::Flow, _) => flow_mapping_to_doc(pairs, indent)
-    YMapping(pairs, YamlCollectionStyle::Block, _) => mapping_to_doc(pairs, indent)
+    YSequence(elements, YamlCollectionStyle::Flow, _) =>
+      flow_sequence_to_doc(elements, indent)
+    YSequence(elements, YamlCollectionStyle::Block, _) =>
+      sequence_to_doc(elements, indent)
+    YMapping(pairs, YamlCollectionStyle::Flow, _) =>
+      flow_mapping_to_doc(pairs, indent)
+    YMapping(pairs, YamlCollectionStyle::Block, _) =>
+      mapping_to_doc(pairs, indent)
     YAlias(name, _) => @pretty.text("*" + name)
     YAnchor(name, value) =>
-      @pretty.concat([@pretty.text("&" + name + " "), node_to_doc(value, indent)])
+      @pretty.concat([
+        @pretty.text("&" + name + " "),
+        node_to_doc(value, indent),
+      ])
   }
   @pretty.concat([leading, content, trailing])
 }
@@ -62,8 +69,23 @@ fn needs_quoting(s : String) -> Bool {
   for i = 0; i < s.length(); i = i + 1 {
     let ch = s[i].to_int().unsafe_to_char()
     match ch {
-      ':' | '[' | ']' | '{' | '}' | ',' | '#' | '"' | '\'' | '|' |
-      '>' | '&' | '*' | '%' | '@' | '`' | '\\' => return true
+      ':'
+      | '['
+      | ']'
+      | '{'
+      | '}'
+      | ','
+      | '#'
+      | '"'
+      | '\''
+      | '|'
+      | '>'
+      | '&'
+      | '*'
+      | '%'
+      | '@'
+      | '`'
+      | '\\' => return true
       _ => ()
     }
   }
@@ -100,8 +122,12 @@ fn looks_like_number(s : String) -> Bool {
   // Rest must be digits, dots, or exponent chars
   while i < s.length() {
     let ch = s[i].to_int().unsafe_to_char()
-    if (ch >= '0' && ch <= '9') || ch == '.' || ch == 'e' || ch == 'E' ||
-       ch == '+' || ch == '-' {
+    if (ch >= '0' && ch <= '9') ||
+      ch == '.' ||
+      ch == 'e' ||
+      ch == 'E' ||
+      ch == '+' ||
+      ch == '-' {
       i += 1
     } else {
       return false
@@ -169,7 +195,13 @@ fn literal_block_to_doc(s : String) -> @pretty.Doc {
   let all_docs : Array[@pretty.Doc] = []
   for i = 0; i < lines.length(); i = i + 1 {
     let line = lines[i]
-    all_docs.push(@pretty.concat([@pretty.text("  "), @pretty.text(line), @pretty.hardline()]))
+    all_docs.push(
+      @pretty.concat([
+        @pretty.text("  "),
+        @pretty.text(line),
+        @pretty.hardline(),
+      ]),
+    )
   }
   @pretty.concat([
     @pretty.text("|"),
@@ -206,18 +238,40 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
       YMapping(pairs, YamlCollectionStyle::Block, trivia) if pairs.length() > 1 => {
         // First pair: "- key: value"
         let first_pair = pairs[0]
-        let first_key_leading = trivia_to_doc(first_pair.key_trivia.leading, true)
+        let first_key_leading = trivia_to_doc(
+          first_pair.key_trivia.leading,
+          true,
+        )
         let first_key_doc = node_to_doc(first_pair.key, indent + 2)
         let first_value_doc = node_to_doc(first_pair.value, indent + 4)
-        let first_key_trailing = trivia_to_doc(first_pair.key_trivia.trailing, false)
+        let first_key_trailing = trivia_to_doc(
+          first_pair.key_trivia.trailing,
+          false,
+        )
         let is_first_nested = match first_pair.value {
           YSequence(_, _, _) | YMapping(_, _, _) => true
           _ => false
         }
         let first_doc = if is_first_nested {
-          @pretty.concat([first_key_leading, first_key_doc, @pretty.text(":"), @pretty.nest(2, @pretty.concat([@pretty.hardline(), first_value_doc])), first_key_trailing])
+          @pretty.concat([
+            first_key_leading,
+            first_key_doc,
+            @pretty.text(":"),
+            @pretty.nest(
+              2,
+              @pretty.concat([@pretty.hardline(), first_value_doc]),
+            ),
+            first_key_trailing,
+          ])
         } else {
-          @pretty.concat([first_key_leading, first_key_doc, @pretty.text(":"), @pretty.text(" "), first_value_doc, first_key_trailing])
+          @pretty.concat([
+            first_key_leading,
+            first_key_doc,
+            @pretty.text(":"),
+            @pretty.text(" "),
+            first_value_doc,
+            first_key_trailing,
+          ])
         }
 
         // Remaining pairs need to be indented by 2 (to align with first key)
@@ -234,15 +288,37 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
           }
           if is_nested {
             rest_docs.push(
-              @pretty.concat([key_leading, key_doc, @pretty.text(":"), @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc])), key_trailing]),
+              @pretty.concat([
+                key_leading,
+                key_doc,
+                @pretty.text(":"),
+                @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc])),
+                key_trailing,
+              ]),
             )
           } else {
-            rest_docs.push(@pretty.concat([key_leading, key_doc, @pretty.text(":"), @pretty.text(" "), value_doc, key_trailing]))
+            rest_docs.push(
+              @pretty.concat([
+                key_leading,
+                key_doc,
+                @pretty.text(":"),
+                @pretty.text(" "),
+                value_doc,
+                key_trailing,
+              ]),
+            )
           }
         }
         let leading_trivia = trivia_to_doc(trivia.leading, true)
         let rest_joined = @pretty.join(rest_docs, @pretty.hardline())
-        docs.push(@pretty.concat([leading_trivia, @pretty.text("- "), first_doc, @pretty.nest(2, @pretty.concat([@pretty.hardline(), rest_joined]))]))
+        docs.push(
+          @pretty.concat([
+            leading_trivia,
+            @pretty.text("- "),
+            first_doc,
+            @pretty.nest(2, @pretty.concat([@pretty.hardline(), rest_joined])),
+          ]),
+        )
       }
       _ => {
         let elem_doc = node_to_doc(elem, indent + 2)
@@ -255,7 +331,10 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
 
 ///|
 /// Convert a flow-style sequence to document: [elem1, elem2, ...]
-fn flow_sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
+fn flow_sequence_to_doc(
+  elements : Array[YamlNode],
+  indent : Int,
+) -> @pretty.Doc {
   let elem_docs = elements.map(fn(e) { node_to_doc(e, indent) })
   let joined = @pretty.join(elem_docs, @pretty.text(", "))
   @pretty.concat([@pretty.text("["), joined, @pretty.text("]")])
@@ -296,18 +375,36 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
       // nest must wrap hardline for indentation to apply
       // key_trailing comes after the nested value
       docs.push(
-        @pretty.concat([key_leading, key_doc, @pretty.text(":"), @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc])), key_trailing]),
+        @pretty.concat([
+          key_leading,
+          key_doc,
+          @pretty.text(":"),
+          @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc])),
+          key_trailing,
+        ]),
       )
     } else {
       // key_trailing comes after the value
-      docs.push(@pretty.concat([key_leading, key_doc, @pretty.text(":"), @pretty.text(" "), value_doc, key_trailing]))
+      docs.push(
+        @pretty.concat([
+          key_leading,
+          key_doc,
+          @pretty.text(":"),
+          @pretty.text(" "),
+          value_doc,
+          key_trailing,
+        ]),
+      )
     }
   }
   @pretty.join(docs, @pretty.hardline())
 }
 
 ///|
-fn trivia_to_doc(comments : Array[@common.Comment], is_leading : Bool) -> @pretty.Doc {
+fn trivia_to_doc(
+  comments : Array[@common.Comment],
+  is_leading : Bool,
+) -> @pretty.Doc {
   if comments.is_empty() {
     return @pretty.Doc::nil()
   }

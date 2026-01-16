@@ -107,7 +107,10 @@ pub fn Lexer::next_token(self : Lexer) -> Token {
         // Whitespace
         ' ' | '\t' => {
           let ws = self.skip_while(fn(c) { c == ' ' || c == '\t' })
-          Token::new(Whitespace(ws), @common.Span::new(start, self.current_pos()))
+          Token::new(
+            Whitespace(ws),
+            @common.Span::new(start, self.current_pos()),
+          )
         }
         // Newline
         '\n' => {
@@ -226,7 +229,10 @@ fn Lexer::lex_string(self : Lexer, start : @common.Pos) -> Token {
       }
     }
   }
-  Token::new(String(buf.to_string()), @common.Span::new(start, self.current_pos()))
+  Token::new(
+    String(buf.to_string()),
+    @common.Span::new(start, self.current_pos()),
+  )
 }
 
 ///|
@@ -352,7 +358,7 @@ fn Lexer::lex_keyword(
   self : Lexer,
   expected : String,
   kind : TokenKind,
-  start : @common.Pos
+  start : @common.Pos,
 ) -> Token {
   for i = 0; i < expected.length(); i = i + 1 {
     match self.peek() {

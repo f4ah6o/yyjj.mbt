@@ -51,15 +51,15 @@ pub fn lookup_target_position(
   source_line : Int,
   source_column : Int,
   source_offset : Int,
-) -> Option[Pos] {
+) -> Pos? {
   for mapping in mappings {
     if position_in_range(
-      source_line,
-      source_column,
-      source_offset,
-      mapping.source_start,
-      mapping.source_end,
-    ) {
+        source_line,
+        source_column,
+        source_offset,
+        mapping.source_start,
+        mapping.source_end,
+      ) {
       return Some(mapping.target_start)
     }
   }
@@ -73,15 +73,15 @@ pub fn lookup_source_position(
   target_line : Int,
   target_column : Int,
   target_offset : Int,
-) -> Option[Pos] {
+) -> Pos? {
   for mapping in mappings {
     if position_in_range(
-      target_line,
-      target_column,
-      target_offset,
-      mapping.target_start,
-      mapping.target_end,
-    ) {
+        target_line,
+        target_column,
+        target_offset,
+        mapping.target_start,
+        mapping.target_end,
+      ) {
       return Some(mapping.source_start)
     }
   }
@@ -98,17 +98,25 @@ fn position_in_range(
   range_end : Pos,
 ) -> Bool {
   let after_start_offset = offset > range_start.offset
-  let after_start_same_offset_line = offset == range_start.offset && line == range_start.line
-  let after_start_same_offset_col = after_start_same_offset_line && column >= range_start.column
-  let after_start_same_offset_greater_line = offset == range_start.offset && line > range_start.line
-  let after_start = after_start_offset || after_start_same_offset_col || after_start_same_offset_greater_line
-
+  let after_start_same_offset_line = offset == range_start.offset &&
+    line == range_start.line
+  let after_start_same_offset_col = after_start_same_offset_line &&
+    column >= range_start.column
+  let after_start_same_offset_greater_line = offset == range_start.offset &&
+    line > range_start.line
+  let after_start = after_start_offset ||
+    after_start_same_offset_col ||
+    after_start_same_offset_greater_line
   let before_end_offset = offset < range_end.offset
-  let before_end_same_offset_line = offset == range_end.offset && line == range_end.line
-  let before_end_same_offset_col = before_end_same_offset_line && column <= range_end.column
-  let before_end_same_offset_less_line = offset == range_end.offset && line < range_end.line
-  let before_end = before_end_offset || before_end_same_offset_col || before_end_same_offset_less_line
-
+  let before_end_same_offset_line = offset == range_end.offset &&
+    line == range_end.line
+  let before_end_same_offset_col = before_end_same_offset_line &&
+    column <= range_end.column
+  let before_end_same_offset_less_line = offset == range_end.offset &&
+    line < range_end.line
+  let before_end = before_end_offset ||
+    before_end_same_offset_col ||
+    before_end_same_offset_less_line
   if after_start {
     before_end
   } else {

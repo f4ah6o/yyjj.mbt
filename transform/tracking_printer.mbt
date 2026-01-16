@@ -75,7 +75,10 @@ pub fn print_jsonc_with_tracking(node : @jsonc.JsonNode) -> String {
 
 ///|
 /// Print a node
-fn TrackingPrinter::print_node(self : TrackingPrinter, node : @jsonc.JsonNode) -> Unit {
+fn TrackingPrinter::print_node(
+  self : TrackingPrinter,
+  node : @jsonc.JsonNode,
+) -> Unit {
   // Print leading trivia
   let trivia = node.trivia()
   self.print_trivia(trivia.leading, true)
@@ -100,7 +103,7 @@ fn TrackingPrinter::print_node(self : TrackingPrinter, node : @jsonc.JsonNode) -
 fn TrackingPrinter::print_trivia(
   self : TrackingPrinter,
   comments : Array[@common.Comment],
-  is_leading : Bool
+  is_leading : Bool,
 ) -> Unit {
   for comment in comments {
     let text = match comment.kind {
@@ -119,16 +122,17 @@ fn TrackingPrinter::print_trivia(
 
 ///|
 /// Print array
-fn TrackingPrinter::print_array(self : TrackingPrinter, elements : Array[@jsonc.JsonNode]) -> Unit {
+fn TrackingPrinter::print_array(
+  self : TrackingPrinter,
+  elements : Array[@jsonc.JsonNode],
+) -> Unit {
   self.write("[")
   if elements.is_empty() {
     self.write("]")
     return
   }
-
   self.set_indent(self.indent + 2)
   self.newline()
-
   for i = 0; i < elements.length(); i = i + 1 {
     self.write_indent()
     self.print_node(elements[i])
@@ -137,7 +141,6 @@ fn TrackingPrinter::print_array(self : TrackingPrinter, elements : Array[@jsonc.
     }
     self.newline()
   }
-
   self.set_indent(self.indent)
   self.write_indent()
   self.write("]")
@@ -145,16 +148,17 @@ fn TrackingPrinter::print_array(self : TrackingPrinter, elements : Array[@jsonc.
 
 ///|
 /// Print object
-fn TrackingPrinter::print_object(self : TrackingPrinter, props : Array[@jsonc.JProperty]) -> Unit {
+fn TrackingPrinter::print_object(
+  self : TrackingPrinter,
+  props : Array[@jsonc.JProperty],
+) -> Unit {
   self.write("{")
   if props.is_empty() {
     self.write("}")
     return
   }
-
   self.set_indent(self.indent + 2)
   self.newline()
-
   for i = 0; i < props.length(); i = i + 1 {
     let prop = props[i]
     self.write_indent()
@@ -164,7 +168,6 @@ fn TrackingPrinter::print_object(self : TrackingPrinter, props : Array[@jsonc.JP
     }
     self.newline()
   }
-
   self.set_indent(self.indent)
   self.write_indent()
   self.write("}")
@@ -172,7 +175,10 @@ fn TrackingPrinter::print_object(self : TrackingPrinter, props : Array[@jsonc.JP
 
 ///|
 /// Print property
-fn TrackingPrinter::print_property(self : TrackingPrinter, prop : @jsonc.JProperty) -> Unit {
+fn TrackingPrinter::print_property(
+  self : TrackingPrinter,
+  prop : @jsonc.JProperty,
+) -> Unit {
   // Print key trivia
   self.print_trivia(prop.key_trivia.leading, true)
 
@@ -238,7 +244,10 @@ pub fn print_yaml_with_tracking(node : @yaml.YamlNode) -> String {
 
 ///|
 /// Print a YAML node
-fn TrackingPrinter::print_yaml_node(self : TrackingPrinter, node : @yaml.YamlNode) -> Unit {
+fn TrackingPrinter::print_yaml_node(
+  self : TrackingPrinter,
+  node : @yaml.YamlNode,
+) -> Unit {
   // Print leading trivia
   let trivia = node.trivia()
   self.print_yaml_trivia(trivia.leading, true)
@@ -269,17 +278,16 @@ fn TrackingPrinter::print_yaml_node(self : TrackingPrinter, node : @yaml.YamlNod
 fn TrackingPrinter::print_yaml_string(
   self : TrackingPrinter,
   s : String,
-  style : @yaml.YamlScalarStyle
+  style : @yaml.YamlScalarStyle,
 ) -> Unit {
   match style {
-    @yaml.Plain => {
+    @yaml.Plain =>
       // Check if we need quotes
       if needs_yaml_quoting(s) {
         self.write("\"" + s + "\"")
       } else {
         self.write(s)
       }
-    }
     @yaml.SingleQuoted => self.write("'" + s + "'")
     @yaml.DoubleQuoted => self.write("\"" + s + "\"")
     @yaml.Literal => self.print_yaml_literal_block(s)
@@ -331,7 +339,10 @@ fn needs_yaml_quoting(s : String) -> Bool {
 
 ///|
 /// Print YAML literal block
-fn TrackingPrinter::print_yaml_literal_block(self : TrackingPrinter, s : String) -> Unit {
+fn TrackingPrinter::print_yaml_literal_block(
+  self : TrackingPrinter,
+  s : String,
+) -> Unit {
   self.write("|")
   self.newline()
   let lines = split_lines_to_array(s)
@@ -344,7 +355,10 @@ fn TrackingPrinter::print_yaml_literal_block(self : TrackingPrinter, s : String)
 
 ///|
 /// Print YAML folded block
-fn TrackingPrinter::print_yaml_folded_block(self : TrackingPrinter, s : String) -> Unit {
+fn TrackingPrinter::print_yaml_folded_block(
+  self : TrackingPrinter,
+  s : String,
+) -> Unit {
   self.write(">")
   self.newline()
   let lines = split_lines_to_array(s)
@@ -357,12 +371,14 @@ fn TrackingPrinter::print_yaml_folded_block(self : TrackingPrinter, s : String) 
 
 ///|
 /// Print YAML sequence
-fn TrackingPrinter::print_yaml_sequence(self : TrackingPrinter, elements : Array[@yaml.YamlNode]) -> Unit {
+fn TrackingPrinter::print_yaml_sequence(
+  self : TrackingPrinter,
+  elements : Array[@yaml.YamlNode],
+) -> Unit {
   if elements.is_empty() {
     self.write("[]")
     return
   }
-
   self.set_indent(self.indent + 2)
   for elem in elements {
     self.write("- ")
@@ -377,12 +393,14 @@ fn TrackingPrinter::print_yaml_sequence(self : TrackingPrinter, elements : Array
 
 ///|
 /// Print YAML mapping
-fn TrackingPrinter::print_yaml_mapping(self : TrackingPrinter, pairs : Array[@yaml.YKeyValue]) -> Unit {
+fn TrackingPrinter::print_yaml_mapping(
+  self : TrackingPrinter,
+  pairs : Array[@yaml.YKeyValue],
+) -> Unit {
   if pairs.is_empty() {
     self.write("{}")
     return
   }
-
   self.set_indent(self.indent + 2)
   for pair in pairs {
     self.print_yaml_node(pair.key)
@@ -401,7 +419,7 @@ fn TrackingPrinter::print_yaml_mapping(self : TrackingPrinter, pairs : Array[@ya
 fn TrackingPrinter::print_yaml_trivia(
   self : TrackingPrinter,
   comments : Array[@common.Comment],
-  is_leading : Bool
+  is_leading : Bool,
 ) -> Unit {
   for comment in comments {
     let text = "#" + comment.content

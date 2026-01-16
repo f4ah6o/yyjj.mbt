@@ -1,6 +1,9 @@
 ///|
 /// Convert JSONC string to YAML string, preserving comments
-pub fn jsonc_to_yaml(input : String, width? : Int) -> Result[String, @common.ParseError] {
+pub fn jsonc_to_yaml(
+  input : String,
+  width? : Int,
+) -> Result[String, @common.ParseError] {
   let parsed = @jsonc.parse(input)
   match parsed {
     Ok(node) => {
@@ -14,7 +17,10 @@ pub fn jsonc_to_yaml(input : String, width? : Int) -> Result[String, @common.Par
 
 ///|
 /// Convert YAML string to JSONC string, preserving comments
-pub fn yaml_to_jsonc(input : String, width? : Int) -> Result[String, @common.ParseError] {
+pub fn yaml_to_jsonc(
+  input : String,
+  width? : Int,
+) -> Result[String, @common.ParseError] {
   let parsed = @yaml.parse(input)
   match parsed {
     Ok(node) => {
@@ -28,7 +34,9 @@ pub fn yaml_to_jsonc(input : String, width? : Int) -> Result[String, @common.Par
 
 ///|
 /// Parse JSONC string to CST
-pub fn parse_jsonc(input : String) -> Result[@jsonc.JsonNode, @common.ParseError] {
+pub fn parse_jsonc(
+  input : String,
+) -> Result[@jsonc.JsonNode, @common.ParseError] {
   @jsonc.parse(input)
 }
 
@@ -68,7 +76,7 @@ pub fn transform_yaml_to_jsonc(node : @yaml.YamlNode) -> @jsonc.JsonNode {
 /// Convert JSONC to YAML with position mapping
 /// Returns ConversionResult containing output and source mappings
 pub fn jsonc_to_yaml_with_mapping(
-  input : String
+  input : String,
 ) -> Result[@common.ConversionResult, @common.ParseError] {
   @transform.jsonc_to_yaml_with_mapping(input)
 }
@@ -77,7 +85,7 @@ pub fn jsonc_to_yaml_with_mapping(
 /// Convert YAML to JSONC with position mapping
 /// Returns ConversionResult containing output and source mappings
 pub fn yaml_to_jsonc_with_mapping(
-  input : String
+  input : String,
 ) -> Result[@common.ConversionResult, @common.ParseError] {
   @transform.yaml_to_jsonc_with_mapping(input)
 }
@@ -88,7 +96,7 @@ pub fn yaml_to_jsonc_with_mapping(
 pub fn create_comment_based_mappings(
   input : String,
   output : String,
-  is_jsonc_input : Bool
+  is_jsonc_input : Bool,
 ) -> Array[@common.SourceMapping] {
   @transform.create_comment_based_mappings(input, output, is_jsonc_input)
 }

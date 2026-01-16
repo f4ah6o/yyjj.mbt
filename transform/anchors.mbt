@@ -11,7 +11,11 @@ pub struct Anchor {
 
 ///|
 /// Create a new anchor
-pub fn Anchor::new(span : Span, path : Array[String], value_kind : String) -> Anchor {
+pub fn Anchor::new(
+  span : Span,
+  path : Array[String],
+  value_kind : String,
+) -> Anchor {
   { span, path, value_kind }
 }
 
@@ -25,7 +29,7 @@ pub fn extract_jsonc_anchors(node : @jsonc.JsonNode) -> Array[Anchor] {
 /// Extract anchors with current path
 fn extract_jsonc_anchors_with_path(
   node : @jsonc.JsonNode,
-  path : Array[String]
+  path : Array[String],
 ) -> Array[Anchor] {
   let mut anchors : Array[Anchor] = []
 
@@ -42,23 +46,26 @@ fn extract_jsonc_anchors_with_path(
 
   // Recursively extract from children
   match node {
-    @jsonc.JObject(props, _) => {
+    @jsonc.JObject(props, _) =>
       for prop in props {
         let new_path = path + [prop.key]
-        let child_anchors = extract_jsonc_anchors_with_path(prop.value, new_path)
+        let child_anchors = extract_jsonc_anchors_with_path(
+          prop.value,
+          new_path,
+        )
         anchors = anchors + child_anchors
       }
-    }
-    @jsonc.JArray(elements, _) => {
+    @jsonc.JArray(elements, _) =>
       for i = 0; i < elements.length(); i = i + 1 {
         let new_path = path + [i.to_string()]
-        let child_anchors = extract_jsonc_anchors_with_path(elements[i], new_path)
+        let child_anchors = extract_jsonc_anchors_with_path(
+          elements[i],
+          new_path,
+        )
         anchors = anchors + child_anchors
       }
-    }
     _ => ()
   }
-
   anchors
 }
 
@@ -85,7 +92,7 @@ pub fn extract_yaml_anchors(node : @yaml.YamlNode) -> Array[Anchor] {
 /// Extract anchors with current path from YAML
 fn extract_yaml_anchors_with_path(
   node : @yaml.YamlNode,
-  path : Array[String]
+  path : Array[String],
 ) -> Array[Anchor] {
   let mut anchors : Array[Anchor] = []
 
@@ -102,28 +109,28 @@ fn extract_yaml_anchors_with_path(
 
   // Recursively extract from children
   match node {
-    @yaml.YMapping(pairs, _, _) => {
+    @yaml.YMapping(pairs, _, _) =>
       for pair in pairs {
         let key = extract_yaml_key(pair.key)
         let new_path = path + [key]
         let child_anchors = extract_yaml_anchors_with_path(pair.value, new_path)
         anchors = anchors + child_anchors
       }
-    }
-    @yaml.YSequence(elements, _, _) => {
+    @yaml.YSequence(elements, _, _) =>
       for i = 0; i < elements.length(); i = i + 1 {
         let new_path = path + [i.to_string()]
-        let child_anchors = extract_yaml_anchors_with_path(elements[i], new_path)
+        let child_anchors = extract_yaml_anchors_with_path(
+          elements[i],
+          new_path,
+        )
         anchors = anchors + child_anchors
       }
-    }
     @yaml.YAnchor(_, inner) => {
       let child_anchors = extract_yaml_anchors_with_path(inner, path)
       anchors = anchors + child_anchors
     }
     _ => ()
   }
-
   anchors
 }
 
@@ -156,4 +163,6 @@ fn extract_yaml_key(node : @yaml.YamlNode) -> String {
 }
 
 // Type aliases
+
+///|
 type Span = @common.Span

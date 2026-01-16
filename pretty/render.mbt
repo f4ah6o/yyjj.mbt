@@ -18,7 +18,7 @@ pub fn render(doc : Doc, width : Int) -> String {
 fn render_items(
   buf : StringBuilder,
   width : Int,
-  items : Array[(Int, Mode, Doc)]
+  items : Array[(Int, Mode, Doc)],
 ) -> Unit {
   let mut column = 0
   while items.length() > 0 {
@@ -56,14 +56,13 @@ fn render_items(
         items.push((indent, mode, a))
       }
       Nest(i, d) => items.push((indent + i, mode, d))
-      Group(d) => {
+      Group(d) =>
         // Try flat mode first
         if fits(width - column, [(indent, Flat, d)]) {
           items.push((indent, Flat, d))
         } else {
           items.push((indent, Break, d))
         }
-      }
     }
   }
 }

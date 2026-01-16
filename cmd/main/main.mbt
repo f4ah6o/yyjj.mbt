@@ -67,12 +67,11 @@ fn run_to_yaml(args : Array[String]) -> Unit {
       println("Usage: yyjj to-yaml <input> | -f <file>")
       return
     }
-    Some(input) => {
+    Some(input) =>
       match @lib.jsonc_to_yaml(input) {
         Ok(yaml) => println(yaml)
         Err(e) => println("Error: " + e.to_string())
       }
-    }
   }
 }
 
@@ -83,11 +82,10 @@ fn run_to_jsonc(args : Array[String]) -> Unit {
       println("Usage: yyjj to-jsonc <input> | -f <file>")
       return
     }
-    Some(input) => {
+    Some(input) =>
       match @lib.yaml_to_jsonc(input) {
         Ok(jsonc) => println(jsonc)
         Err(e) => println("Error: " + e.to_string())
       }
-    }
   }
 }

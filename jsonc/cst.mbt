@@ -22,7 +22,7 @@ pub struct JProperty {
 pub fn JProperty::new(
   key : String,
   key_trivia : @common.Trivia,
-  value : JsonNode
+  value : JsonNode,
 ) -> JProperty {
   { key, key_trivia, value }
 }
@@ -42,7 +42,10 @@ pub fn JsonNode::trivia(self : JsonNode) -> @common.Trivia {
 
 ///|
 /// Create a node with new trivia
-pub fn JsonNode::with_trivia(self : JsonNode, trivia : @common.Trivia) -> JsonNode {
+pub fn JsonNode::with_trivia(
+  self : JsonNode,
+  trivia : @common.Trivia,
+) -> JsonNode {
   match self {
     JNull(_) => JNull(trivia)
     JBool(v, _) => JBool(v, trivia)
@@ -97,30 +100,45 @@ pub fn JsonNode::null_with_trivia(trivia : @common.Trivia) -> JsonNode {
 
 ///|
 /// Create a boolean node with trivia
-pub fn JsonNode::bool_with_trivia(value : Bool, trivia : @common.Trivia) -> JsonNode {
+pub fn JsonNode::bool_with_trivia(
+  value : Bool,
+  trivia : @common.Trivia,
+) -> JsonNode {
   JBool(value, trivia)
 }
 
 ///|
 /// Create a number node with trivia
-pub fn JsonNode::number_with_trivia(value : String, trivia : @common.Trivia) -> JsonNode {
+pub fn JsonNode::number_with_trivia(
+  value : String,
+  trivia : @common.Trivia,
+) -> JsonNode {
   JNumber(value, trivia)
 }
 
 ///|
 /// Create a string node with trivia
-pub fn JsonNode::string_with_trivia(value : String, trivia : @common.Trivia) -> JsonNode {
+pub fn JsonNode::string_with_trivia(
+  value : String,
+  trivia : @common.Trivia,
+) -> JsonNode {
   JString(value, trivia)
 }
 
 ///|
 /// Create an array node with trivia
-pub fn JsonNode::array_with_trivia(elements : Array[JsonNode], trivia : @common.Trivia) -> JsonNode {
+pub fn JsonNode::array_with_trivia(
+  elements : Array[JsonNode],
+  trivia : @common.Trivia,
+) -> JsonNode {
   JArray(elements, trivia)
 }
 
 ///|
 /// Create an object node with trivia
-pub fn JsonNode::object_with_trivia(properties : Array[JProperty], trivia : @common.Trivia) -> JsonNode {
+pub fn JsonNode::object_with_trivia(
+  properties : Array[JProperty],
+  trivia : @common.Trivia,
+) -> JsonNode {
   JObject(properties, trivia)
 }

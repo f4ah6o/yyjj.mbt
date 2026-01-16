@@ -11,11 +11,10 @@ test "lex_simple_object" {
 
 ///|
 test "lex_with_comments" {
-  let source = (
+  let source =
     #|{
     #|  "a": 1 // comment
     #|}
-  )
   let lexer = @jsonc.Lexer::new(source)
   let tokens = lexer.tokenize()
   let comment_tokens = tokens.filter(fn(t) { t.is_comment() })
@@ -54,14 +53,12 @@ test "lex_unicode_escape" {
 test "lex_numbers" {
   let lexer = @jsonc.Lexer::new("123 -456 3.14 1e10 2.5E-3")
   let tokens = lexer.tokenize()
-  let nums = tokens.filter(
-    fn(t) {
-      match t.kind {
-        @jsonc.Number(_) => true
-        _ => false
-      }
-    },
-  )
+  let nums = tokens.filter(fn(t) {
+    match t.kind {
+      @jsonc.Number(_) => true
+      _ => false
+    }
+  })
   inspect(nums.length(), content="5")
 }
 
@@ -81,13 +78,11 @@ test "lex_trailing_comma" {
   let lexer = @jsonc.Lexer::new("[1, 2, 3,]")
   let tokens = lexer.tokenize()
   // Should tokenize successfully including the trailing comma
-  let commas = tokens.filter(
-    fn(t) {
-      match t.kind {
-        @jsonc.Comma => true
-        _ => false
-      }
-    },
-  )
+  let commas = tokens.filter(fn(t) {
+    match t.kind {
+      @jsonc.Comma => true
+      _ => false
+    }
+  })
   inspect(commas.length(), content="3")
 }

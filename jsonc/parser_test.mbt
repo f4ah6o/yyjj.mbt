@@ -9,13 +9,12 @@ test "parse_simple_object" {
 
 ///|
 test "parse_nested_object" {
-  let source = (
+  let source =
     #|{
     #|  "outer": {
     #|    "inner": 123
     #|  }
     #|}
-  )
   let result = @jsonc.parse(source)
   guard result is Ok(node) else { return }
   guard node is @jsonc.JObject(props, _) else { return }
@@ -40,11 +39,10 @@ test "parse_trailing_comma" {
 
 ///|
 test "parse_with_line_comment" {
-  let source = (
+  let source =
     #|{
     #|  "key": 1 // trailing comment
     #|}
-  )
   let result = @jsonc.parse(source)
   guard result is Ok(node) else { return }
   guard node is @jsonc.JObject(props, _) else { return }
@@ -55,12 +53,11 @@ test "parse_with_line_comment" {
 
 ///|
 test "parse_with_leading_comment" {
-  let source = (
+  let source =
     #|{
     #|  // leading comment
     #|  "key": 1
     #|}
-  )
   let result = @jsonc.parse(source)
   guard result is Ok(node) else { return }
   guard node is @jsonc.JObject(props, _) else { return }
