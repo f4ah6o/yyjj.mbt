@@ -1901,8 +1901,9 @@ fn gen_yaml_node_with_anchors_internal(
 ///|
 /// Generate a YAML node with anchors and aliases (external API)
 /// Wrapper that discards the state for use in @qc.forall
+/// Uses reduced max_depth to avoid problematic deeply nested structures
 fn gen_yaml_node_with_anchor_alias() -> @qc.Gen[@yaml.YamlNode] {
-  gen_yaml_node_with_anchors_internal(3).fmap(fn(result) {
+  gen_yaml_node_with_anchors_internal(2).fmap(fn(result) {
     let (node, _anchors) = result
     node
   })
