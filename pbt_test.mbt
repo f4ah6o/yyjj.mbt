@@ -137,8 +137,22 @@ fn gen_plain_scalar_safe_string() -> @qc.Gen[String] {
         let ch = c
         match ch {
           // Characters from printer's needs_quoting that require quoting
-          '{' | '}' | '[' | ']' | ',' | '#' | '"' | '\'' | '|' | '>' | '&' | '*' | '%' | '@' | '`' | '!'
-          => ()
+          '{'
+          | '}'
+          | '['
+          | ']'
+          | ','
+          | '#'
+          | '"'
+          | '\''
+          | '|'
+          | '>'
+          | '&'
+          | '*'
+          | '%'
+          | '@'
+          | '`'
+          | '!' => ()
           // Space is allowed but track if we have non-space content
           ' ' => buf.write_char(ch)
           // All other characters are allowed (colon, alphanumerics, basic punctuation)
@@ -157,14 +171,35 @@ fn gen_plain_scalar_safe_string() -> @qc.Gen[String] {
     // 4. Ending with colon (printer quotes it, changing style)
     // 5. YAML keywords (printer quotes them, changing style)
     let is_keyword = match result {
-      "null" | "Null" | "NULL" | "~"
-      | "true" | "True" | "TRUE" | "yes" | "Yes" | "YES" | "on" | "On" | "ON"
-      | "false" | "False" | "FALSE" | "no" | "No" | "NO" | "off" | "Off" | "OFF" => true
+      "null"
+      | "Null"
+      | "NULL"
+      | "~"
+      | "true"
+      | "True"
+      | "TRUE"
+      | "yes"
+      | "Yes"
+      | "YES"
+      | "on"
+      | "On"
+      | "ON"
+      | "false"
+      | "False"
+      | "FALSE"
+      | "no"
+      | "No"
+      | "NO"
+      | "off"
+      | "Off"
+      | "OFF" => true
       _ => false
     }
     if result.is_empty() || not(has_non_space) || is_keyword {
       "text"
-    } else if result.starts_with(" ") || result.starts_with(":") || result.ends_with(":") {
+    } else if result.starts_with(" ") ||
+      result.starts_with(":") ||
+      result.ends_with(":") {
       "text"
     } else {
       result
@@ -3107,3 +3142,6 @@ test "pbt_yaml_full_style_roundtrip" {
     max_success=100,
   )
 }
+
+///|
+/// Debug test for anchor/alias roundtrip

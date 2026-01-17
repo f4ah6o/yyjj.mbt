@@ -32,7 +32,7 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
     YBool(true, _) => @pretty.text("true")
     YBool(false, _) => @pretty.text("false")
     YNumber(n, _) => @pretty.text(n)
-    YString(s, style, _) => string_to_doc(s, style)
+    YString(s, style, _) => string_to_doc(s, style, indent)
     YSequence(elements, YamlCollectionStyle::Flow, _) =>
       flow_sequence_to_doc(elements, indent)
     YSequence(elements, YamlCollectionStyle::Block, _) =>
@@ -59,7 +59,13 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
         let anchor_text = anchor_names.map(fn(n) { "&" + n }).join(" ")
         @pretty.concat([
           @pretty.text(anchor_text),
-          @pretty.nest(2, @pretty.concat([@pretty.hardline(), node_to_doc(inner_value, indent)])),
+          @pretty.nest(
+            2,
+            @pretty.concat([
+              @pretty.hardline(),
+              node_to_doc(inner_value, indent),
+            ]),
+          ),
         ])
       } else {
         // All inline
@@ -75,7 +81,11 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
 }
 
 ///|
-fn string_to_doc(s : String, style : YamlScalarStyle) -> @pretty.Doc {
+fn string_to_doc(
+  s : String,
+  style : YamlScalarStyle,
+  indent : Int,
+) -> @pretty.Doc {
   // Handle empty strings - quote them appropriately for each style
   if s.is_empty() {
     match style {
@@ -93,8 +103,18 @@ fn string_to_doc(s : String, style : YamlScalarStyle) -> @pretty.Doc {
         }
       SingleQuoted => @pretty.text("'" + escape_single_quoted(s) + "'")
       DoubleQuoted => @pretty.text("\"" + escape_double_quoted(s) + "\"")
-      Literal => literal_block_to_doc(s)
-      Folded => folded_block_to_doc(s)
+      // For block scalars:
+      // - Content must be indented more than the parent context (YAML spec)
+      // - Root mapping (indent=2 for values): use 2 (no nest wrapper to help)
+      // - Nested mapping (indent>=4 for values): use indent-2 (nest adds 2)
+      Literal => {
+        let block_indent = if indent <= 2 { 2 } else { indent - 2 }
+        literal_block_to_doc(s, block_indent)
+      }
+      Folded => {
+        let block_indent = if indent <= 2 { 2 } else { indent - 2 }
+        folded_block_to_doc(s, block_indent)
+      }
     }
   }
 }
@@ -133,7 +153,21 @@ fn needs_quoting(s : String) -> Bool {
           return true
         }
       }
-      '[' | ']' | '{' | '}' | ',' | '#' | '"' | '\'' | '|' | '>' | '&' | '*' | '%' | '@' | '`' => return true
+      '['
+      | ']'
+      | '{'
+      | '}'
+      | ','
+      | '#'
+      | '"'
+      | '\''
+      | '|'
+      | '>'
+      | '&'
+      | '*'
+      | '%'
+      | '@'
+      | '`' => return true
       _ => ()
     }
   }
@@ -235,7 +269,8 @@ fn split_newlines(s : String) -> Array[String] {
 }
 
 ///|
-fn literal_block_to_doc(s : String) -> @pretty.Doc {
+/// Format a literal block with proper indentation for its nesting level
+fn literal_block_to_doc(s : String, indent : Int) -> @pretty.Doc {
   let lines = split_newlines(s)
   if lines.is_empty() {
     return @pretty.concat([@pretty.text("|"), @pretty.hardline()])
@@ -243,9 +278,12 @@ fn literal_block_to_doc(s : String) -> @pretty.Doc {
   let all_docs : Array[@pretty.Doc] = []
   for i = 0; i < lines.length(); i = i + 1 {
     let line = lines[i]
+    // Each line is indented to the current indent level
+    // The pretty printer will add the nesting via @pretty.nest(2) in mapping_to_doc
+    let indent_str = " ".repeat(indent)
     all_docs.push(
       @pretty.concat([
-        @pretty.text("  "),
+        @pretty.text(indent_str),
         @pretty.text(line),
         @pretty.hardline(),
       ]),
@@ -259,16 +297,22 @@ fn literal_block_to_doc(s : String) -> @pretty.Doc {
 }
 
 ///|
-fn folded_block_to_doc(s : String) -> @pretty.Doc {
+/// Format a folded block with proper indentation for its nesting level
+fn folded_block_to_doc(s : String, indent : Int) -> @pretty.Doc {
   // The lexer has already folded newlines to spaces
   // So we just need to output the content as-is with proper indentation
   if s.is_empty() {
     return @pretty.concat([@pretty.text(">"), @pretty.hardline()])
   }
+  let indent_str = " ".repeat(indent)
   @pretty.concat([
     @pretty.text(">"),
     @pretty.hardline(),
-    @pretty.concat([@pretty.text("  "), @pretty.text(s), @pretty.hardline()]),
+    @pretty.concat([
+      @pretty.text(indent_str),
+      @pretty.text(s),
+      @pretty.hardline(),
+    ]),
   ])
 }
 
@@ -424,10 +468,11 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
     // the | or > indicator should be on the same line as the key
     let is_nested = match pair.value {
       YSequence(_, _, _) | YMapping(_, _, _) => true
-      YAnchor(_, inner) => match inner {
-        YSequence(_, _, _) | YMapping(_, _, _) => true
-        _ => false
-      }
+      YAnchor(_, inner) =>
+        match inner {
+          YSequence(_, _, _) | YMapping(_, _, _) => true
+          _ => false
+        }
       _ => false
     }
     if is_nested {
