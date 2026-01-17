@@ -422,7 +422,7 @@ fn Lexer::lex_literal_block(self : Lexer, start : @common.Pos) -> Token {
   let buf = StringBuilder::new()
   while not(self.is_eof()) {
     let spaces = self.count_spaces()
-    if spaces < block_indent && not(is_blank_line(self)) {
+    if spaces < block_indent {
       break
     }
     // Skip indent
@@ -498,7 +498,7 @@ fn Lexer::lex_folded_block(self : Lexer, start : @common.Pos) -> Token {
   let mut first_line = true
   while not(self.is_eof()) {
     let spaces = self.count_spaces()
-    if spaces < block_indent && not(is_blank_line(self)) {
+    if spaces < block_indent {
       break
     }
     // Skip indent

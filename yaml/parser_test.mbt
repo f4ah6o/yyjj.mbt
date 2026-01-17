@@ -91,10 +91,10 @@ test "pbt_failing_case_anchor_alias" {
           #|4xVV:
           #|  JKEAvC: |
           #|    ar/
-          #|    
           #|  
           #|  _: &__ 'zWee'
           #|KU5ACG: *__
+
         ),
       )
     }
