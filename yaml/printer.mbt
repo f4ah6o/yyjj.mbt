@@ -55,17 +55,14 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
         result
       }
       if is_nested_structure(inner_value) {
-        // Multiple anchors on the same line, nested structure below
+        // For nested structures, print inline with anchor, then structure on next line
+        // This produces "&anchor\n  key: value" instead of "&anchor\n    key: value"
+        // The caller (mapping_to_doc or sequence_to_doc) handles the indentation
         let anchor_text = anchor_names.map(fn(n) { "&" + n }).join(" ")
         @pretty.concat([
           @pretty.text(anchor_text),
-          @pretty.nest(
-            2,
-            @pretty.concat([
-              @pretty.hardline(),
-              node_to_doc(inner_value, indent),
-            ]),
-          ),
+          @pretty.hardline(),
+          node_to_doc(inner_value, indent),
         ])
       } else {
         // All inline
@@ -490,46 +487,82 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
     // Output key_trivia leading comments
     let key_leading = trivia_to_doc(pair.key_trivia.leading, true)
     let key_doc = node_to_doc(pair.key, indent)
-    let value_doc = node_to_doc(pair.value, indent + 2)
     // Output key_trivia trailing comments (these come AFTER the value)
     let key_trailing = trivia_to_doc(pair.key_trivia.trailing, false)
-    // Check if value is a nested structure (sequence or mapping)
-    // Note: literal/folded blocks are NOT treated as nested here because
-    // the | or > indicator should be on the same line as the key
-    let is_nested = match pair.value {
-      YSequence(_, _, _) | YMapping(_, _, _) => true
-      YAnchor(_, inner) =>
-        match inner {
+
+    // Special handling for anchored values - extract anchor to print inline with key
+    match pair.value {
+      YAnchor(name, anchor_value) => {
+        let (inner_names, inner_value) = unwrap_anchors(pair.value)
+        let anchor_text = inner_names.map(fn(n) { "&" + n }).join(" ")
+        let is_inner_nested = is_nested_structure(inner_value)
+
+        if is_inner_nested {
+          // Print key: &anchor on same line, nested structure below
+          let inner_doc = node_to_doc(inner_value, indent + 2)
+          docs.push(
+            @pretty.concat([
+              key_leading,
+              key_doc,
+              @pretty.text(":"),
+              @pretty.text(" "),
+              @pretty.text(anchor_text),
+              @pretty.nest(2, @pretty.concat([@pretty.hardline(), inner_doc])),
+              key_trailing,
+            ]),
+          )
+        } else {
+          // key: &anchor value (all inline)
+          let inner_doc = node_to_doc(inner_value, indent + 2)
+          docs.push(
+            @pretty.concat([
+              key_leading,
+              key_doc,
+              @pretty.text(":"),
+              @pretty.text(" "),
+              @pretty.text(anchor_text + " "),
+              inner_doc,
+              key_trailing,
+            ]),
+          )
+        }
+      }
+      _ => {
+        let value_doc = node_to_doc(pair.value, indent + 2)
+        // Check if value is a nested structure (sequence or mapping)
+        // Note: literal/folded blocks are NOT treated as nested here because
+        // the | or > indicator should be on the same line as the key
+        let is_nested = match pair.value {
           YSequence(_, _, _) | YMapping(_, _, _) => true
           _ => false
         }
-      _ => false
-    }
-    if is_nested {
-      // nest must wrap hardline for indentation to apply
-      // key_trailing comes after the nested value
-      docs.push(
-        @pretty.concat([
-          key_leading,
-          key_doc,
-          @pretty.text(":"),
-          @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc])),
-          key_trailing,
-        ]),
-      )
-    } else {
-      // key_trailing comes after the value
-      // This includes literal/folded blocks (|/>) which go on the same line as the key
-      docs.push(
-        @pretty.concat([
-          key_leading,
-          key_doc,
-          @pretty.text(":"),
-          @pretty.text(" "),
-          value_doc,
-          key_trailing,
-        ]),
-      )
+        if is_nested {
+          // nest must wrap hardline for indentation to apply
+          // key_trailing comes after the nested value
+          docs.push(
+            @pretty.concat([
+              key_leading,
+              key_doc,
+              @pretty.text(":"),
+              @pretty.nest(2, @pretty.concat([@pretty.hardline(), value_doc])),
+              key_trailing,
+            ]),
+          )
+        } else {
+          // key_trailing comes after the value
+          // This includes literal/folded blocks (|/>) which go on the same line as the key
+          docs.push(
+            @pretty.concat([
+              key_leading,
+              key_doc,
+              @pretty.text(":"),
+              @pretty.text(" "),
+              value_doc,
+              key_trailing,
+            ]),
+          )
+        }
+      }
     }
   }
   @pretty.join(docs, @pretty.hardline())
