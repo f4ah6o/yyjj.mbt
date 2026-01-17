@@ -120,6 +120,59 @@ fn gen_safe_key() -> @qc.Gen[String] {
 }
 
 ///|
+/// Generate a string valid for YAML plain scalars
+/// Plain scalars cannot contain: flow indicators {[}],, comment#, tags!&, anchors*, aliases@, quotes"',
+/// literal/folded indicators|>, and colon followed by space :[ \t\n\r]
+fn gen_plain_scalar_safe_string() -> @qc.Gen[String] {
+  let gen : @qc.Gen[String] = @qc.Gen::spawn()
+  gen.fmap(fn(s) {
+    let buf = StringBuilder::new()
+    let mut has_non_space = false
+    for c in s {
+      let code = c.to_int()
+      // Filter out flow indicators and other special chars that break plain scalars
+      // Allow: alphanumeric, space, basic punctuation (excluding problematic chars)
+      // Filter out characters that would trigger quoting in the printer
+      if code >= 0x20 && code < 0x7f {
+        let ch = c
+        match ch {
+          // Characters from printer's needs_quoting that require quoting
+          '{' | '}' | '[' | ']' | ',' | '#' | '"' | '\'' | '|' | '>' | '&' | '*' | '%' | '@' | '`' | '!'
+          => ()
+          // Space is allowed but track if we have non-space content
+          ' ' => buf.write_char(ch)
+          // All other characters are allowed (colon, alphanumerics, basic punctuation)
+          _ => {
+            buf.write_char(ch)
+            has_non_space = true
+          }
+        }
+      }
+    }
+    let result = buf.to_string()
+    // Filter out problematic strings:
+    // 1. Empty or only whitespace (gets trimmed to empty by parser)
+    // 2. Starting with space (ambiguous parsing)
+    // 3. Starting with colon (looks like key)
+    // 4. Ending with colon (printer quotes it, changing style)
+    // 5. YAML keywords (printer quotes them, changing style)
+    let is_keyword = match result {
+      "null" | "Null" | "NULL" | "~"
+      | "true" | "True" | "TRUE" | "yes" | "Yes" | "YES" | "on" | "On" | "ON"
+      | "false" | "False" | "FALSE" | "no" | "No" | "NO" | "off" | "Off" | "OFF" => true
+      _ => false
+    }
+    if result.is_empty() || not(has_non_space) || is_keyword {
+      "text"
+    } else if result.starts_with(" ") || result.starts_with(":") || result.ends_with(":") {
+      "text"
+    } else {
+      result
+    }
+  })
+}
+
+///|
 /// Generate a simple scalar JsonNode (no recursion)
 fn gen_json_scalar() -> @qc.Gen[@jsonc.JsonNode] {
   let empty = @common.Trivia::empty()
@@ -2216,38 +2269,15 @@ fn gen_yaml_plain_string() -> @qc.Gen[@yaml.YamlNode] {
       }),
     ),
 
-    // Strings that look like keywords (will be handled by printer)
+    // Plain scalar safe strings (no flow indicators, no keywords)
     (
-      1,
-      gen_yaml_keyword_like_string().fmap(fn(s) {
+      4,
+      gen_plain_scalar_safe_string().fmap(fn(s) {
         @yaml.YamlNode::string_with_trivia(
           s,
           @yaml.YamlScalarStyle::plain(),
           @common.Trivia::empty(),
         )
-      }),
-    ),
-
-    // Strings with hyphens, dots (common in keys) - filter out number-like strings
-    (
-      2,
-      gen_safe_string().fmap(fn(s) {
-        let safe = if s.is_empty() { "key" } else { s }
-        // Don't generate plain strings that look like numbers (they'll be quoted during print)
-        if looks_like_number_for_gen(safe) {
-          // Add a prefix to make it clearly a string
-          @yaml.YamlNode::string_with_trivia(
-            "s" + safe,
-            @yaml.YamlScalarStyle::plain(),
-            @common.Trivia::empty(),
-          )
-        } else {
-          @yaml.YamlNode::string_with_trivia(
-            safe,
-            @yaml.YamlScalarStyle::plain(),
-            @common.Trivia::empty(),
-          )
-        }
       }),
     ),
   ])
@@ -2297,13 +2327,17 @@ fn filter_anchor_safe(s : String) -> String {
   for i = 0; i < s.length(); i = i + 1 {
     let ch = s[i].to_int().unsafe_to_char()
     // Filter characters that might cause issues in edge cases
+    // Also filter colons in certain positions to avoid quoting
     match ch {
       ')' | '(' | '[' | ']' | '{' | '}' | ',' | '#' => ()
       _ => buf.write_char(ch)
     }
   }
   let result = buf.to_string()
+  // Filter out problematic patterns
   if result.is_empty() {
+    "anchor"
+  } else if result.starts_with(":") || result.ends_with(":") {
     "anchor"
   } else {
     result
