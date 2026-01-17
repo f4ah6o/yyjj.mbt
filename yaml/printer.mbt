@@ -308,20 +308,26 @@ fn literal_block_to_doc(s : String, indent : Int) -> @pretty.Doc {
 ///|
 /// Format a folded block with proper indentation for its nesting level
 fn folded_block_to_doc(s : String, indent : Int) -> @pretty.Doc {
-  // The lexer has already folded newlines to spaces
-  // So we just need to output the content as-is with proper indentation
   if s.is_empty() {
     return @pretty.concat([@pretty.text(">"), @pretty.hardline()])
   }
-  let indent_str = " ".repeat(indent)
+  let lines = split_newlines(s)
+  let all_docs : Array[@pretty.Doc] = []
+  for i = 0; i < lines.length(); i = i + 1 {
+    let line = lines[i]
+    let indent_str = " ".repeat(indent)
+    all_docs.push(
+      @pretty.concat([
+        @pretty.text(indent_str),
+        @pretty.text(line),
+        @pretty.hardline(),
+      ]),
+    )
+  }
   @pretty.concat([
     @pretty.text(">"),
     @pretty.hardline(),
-    @pretty.concat([
-      @pretty.text(indent_str),
-      @pretty.text(s),
-      @pretty.hardline(),
-    ]),
+    @pretty.concat(all_docs),
   ])
 }
 
