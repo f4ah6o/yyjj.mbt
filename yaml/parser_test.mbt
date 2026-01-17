@@ -325,3 +325,143 @@ test "yaml_plain_string_with_leading_spaces_roundtrip" {
     _ => inspect("ERROR", content="")
   }
 }
+
+///|
+test "yaml_anchor_nested_mapping_roundtrip" {
+  // Test that anchored nested mappings roundtrip correctly
+  let yaml =
+    #|defaults: &default
+    #|  key1: value1
+    #|  key2: value2
+    #|other:
+    #|  <<: *default
+    #|  key3: value3
+  let result1 = @yaml.parse(yaml)
+  guard result1 is Ok(node1) else {
+    inspect("ERROR", content="Failed to parse")
+    return
+  }
+  let printed = @yaml.print(node1)
+  let result2 = @yaml.parse(printed)
+  guard result2 is Ok(_) else {
+    inspect("ERROR", content="Failed to parse printed output")
+    return
+  }
+  // If we got here, roundtrip succeeded
+  inspect("OK", content="OK")
+}
+
+///|
+test "yaml_anchor_nested_sequence_roundtrip" {
+  // Test that anchored nested sequences roundtrip correctly
+  let yaml =
+    #|items: &item_list
+    #|  - item1
+    #|  - item2
+    #|other:
+    #|  - *item_list
+    #|  - item3
+  let result1 = @yaml.parse(yaml)
+  guard result1 is Ok(node1) else {
+    inspect("ERROR", content="Failed to parse")
+    return
+  }
+  let printed = @yaml.print(node1)
+  let result2 = @yaml.parse(printed)
+  guard result2 is Ok(_) else {
+    inspect("ERROR", content="Failed to parse printed output")
+    return
+  }
+  // If we got here, roundtrip succeeded
+  inspect("OK", content="OK")
+}
+
+///|
+test "yaml_anchor_in_nested_mapping_value" {
+  // Test anchored value inside a nested mapping
+  let yaml =
+    #|parent:
+    #|  child: &anchor_value
+    #|    nested_key: nested_value
+    #|ref:
+    #|  alias: *anchor_value
+  let result1 = @yaml.parse(yaml)
+  guard result1 is Ok(node1) else {
+    inspect("ERROR", content="Failed to parse")
+    return
+  }
+  let printed = @yaml.print(node1)
+  let result2 = @yaml.parse(printed)
+  guard result2 is Ok(_) else {
+    inspect("ERROR", content="Failed to parse printed output")
+    return
+  }
+  // If we got here, roundtrip succeeded
+  inspect("OK", content="OK")
+}
+
+///|
+test "yaml_sequence_with_literal_block_value_roundtrip" {
+  // Test that a sequence with a literal block value roundtrips correctly
+  let yaml =
+    #|- >
+    #|  content
+  let result1 = @yaml.parse(yaml)
+  guard result1 is Ok(node1) else {
+    inspect("ERROR", content="Failed to parse")
+    return
+  }
+  let printed = @yaml.print(node1)
+  let result2 = @yaml.parse(printed)
+  guard result2 is Ok(_) else {
+    inspect("ERROR", content="Failed to parse printed output")
+    return
+  }
+  // If we got here, roundtrip succeeded
+  inspect("OK", content="OK")
+}
+
+///|
+test "yaml_mapping_key_with_literal_block_roundtrip" {
+  // Test that a mapping key with a literal block value roundtrips correctly
+  let yaml =
+    #|key: |
+    #|  content
+  let result1 = @yaml.parse(yaml)
+  guard result1 is Ok(node1) else {
+    inspect("ERROR", content="Failed to parse")
+    return
+  }
+  let printed = @yaml.print(node1)
+  let result2 = @yaml.parse(printed)
+  guard result2 is Ok(_) else {
+    inspect("ERROR", content="Failed to parse printed output")
+    return
+  }
+  // If we got here, roundtrip succeeded
+  inspect("OK", content="OK")
+}
+
+///|
+test "yaml_nested_mapping_with_literal_block_and_anchor_roundtrip" {
+  // Test the specific failing case from the PBT test
+  let yaml =
+    #|outer:
+    #|  key1: |
+    #|    literal content
+    #|  key2: &anchor value
+    #|ref: *anchor
+  let result1 = @yaml.parse(yaml)
+  guard result1 is Ok(node1) else {
+    inspect("ERROR", content="Failed to parse")
+    return
+  }
+  let printed = @yaml.print(node1)
+  let result2 = @yaml.parse(printed)
+  guard result2 is Ok(_) else {
+    inspect("ERROR", content="Failed to parse printed output")
+    return
+  }
+  // If we got here, roundtrip succeeded
+  inspect("OK", content="OK")
+}

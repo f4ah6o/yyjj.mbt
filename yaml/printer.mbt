@@ -5,6 +5,24 @@ pub fn to_doc(node : YamlNode) -> @pretty.Doc {
 }
 
 ///|
+/// Unwrap nested YAnchor nodes, collecting all anchor names and the innermost value
+/// YAnchor(outer, YAnchor(inner, v)) => ([outer, inner], v)
+fn unwrap_anchors(node : YamlNode) -> (Array[String], YamlNode) {
+  match node {
+    YAnchor(name, inner) => {
+      let (rest_names, inner_value) = unwrap_anchors(inner)
+      // Add name to the beginning of the array
+      let result = [name]
+      for n in rest_names {
+        result.push(n)
+      }
+      (result, inner_value)
+    }
+    _ => ([], node)
+  }
+}
+
+///|
 fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
   let trivia = node.trivia()
   let leading = trivia_to_doc(trivia.leading, true)
@@ -24,11 +42,34 @@ fn node_to_doc(node : YamlNode, indent : Int) -> @pretty.Doc {
     YMapping(pairs, YamlCollectionStyle::Block, _) =>
       mapping_to_doc(pairs, indent)
     YAlias(name, _) => @pretty.text("*" + name)
-    YAnchor(name, value) =>
-      @pretty.concat([
-        @pretty.text("&" + name + " "),
-        node_to_doc(value, indent),
-      ])
+    YAnchor(name, value) => {
+      // Unwrap nested anchors to avoid double anchoring in output
+      // YAnchor(outer, YAnchor(inner, v)) => print as "&outer &inner v"
+      let (inner_names, inner_value) = unwrap_anchors(value)
+      // Prepend the current name to the inner names
+      let anchor_names = {
+        let result = [name]
+        for n in inner_names {
+          result.push(n)
+        }
+        result
+      }
+      if is_nested_structure(inner_value) {
+        // Multiple anchors on the same line, nested structure below
+        let anchor_text = anchor_names.map(fn(n) { "&" + n }).join(" ")
+        @pretty.concat([
+          @pretty.text(anchor_text),
+          @pretty.nest(2, @pretty.concat([@pretty.hardline(), node_to_doc(inner_value, indent)])),
+        ])
+      } else {
+        // All inline
+        let anchor_text = anchor_names.map(fn(n) { "&" + n }).join(" ")
+        @pretty.concat([
+          @pretty.text(anchor_text + " "),
+          node_to_doc(inner_value, indent),
+        ])
+      }
+    }
   }
   @pretty.concat([leading, content, trailing])
 }
@@ -232,6 +273,17 @@ fn folded_block_to_doc(s : String) -> @pretty.Doc {
 }
 
 ///|
+/// Check if a node represents a nested structure (sequence or mapping)
+/// that should be printed on multiple lines in block context
+fn is_nested_structure(node : YamlNode) -> Bool {
+  match node {
+    YSequence(_, _, _) | YMapping(_, _, _) => true
+    YAnchor(_, inner) => is_nested_structure(inner)
+    _ => false
+  }
+}
+
+///|
 fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
   if elements.is_empty() {
     return @pretty.text("[]")
@@ -255,10 +307,7 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
           first_pair.key_trivia.trailing,
           false,
         )
-        let is_first_nested = match first_pair.value {
-          YSequence(_, _, _) | YMapping(_, _, _) => true
-          _ => false
-        }
+        let is_first_nested = is_nested_structure(first_pair.value)
         let first_doc = if is_first_nested {
           @pretty.concat([
             first_key_leading,
@@ -289,10 +338,7 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
           let key_doc = node_to_doc(pair.key, indent + 2)
           let value_doc = node_to_doc(pair.value, indent + 4)
           let key_trailing = trivia_to_doc(pair.key_trivia.trailing, false)
-          let is_nested = match pair.value {
-            YSequence(_, _, _) | YMapping(_, _, _) => true
-            _ => false
-          }
+          let is_nested = is_nested_structure(pair.value)
           if is_nested {
             rest_docs.push(
               @pretty.concat([
@@ -373,9 +419,15 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
     let value_doc = node_to_doc(pair.value, indent + 2)
     // Output key_trivia trailing comments (these come AFTER the value)
     let key_trailing = trivia_to_doc(pair.key_trivia.trailing, false)
-    // Check if value is a nested structure
+    // Check if value is a nested structure (sequence or mapping)
+    // Note: literal/folded blocks are NOT treated as nested here because
+    // the | or > indicator should be on the same line as the key
     let is_nested = match pair.value {
       YSequence(_, _, _) | YMapping(_, _, _) => true
+      YAnchor(_, inner) => match inner {
+        YSequence(_, _, _) | YMapping(_, _, _) => true
+        _ => false
+      }
       _ => false
     }
     if is_nested {
@@ -392,6 +444,7 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
       )
     } else {
       // key_trailing comes after the value
+      // This includes literal/folded blocks (|/>) which go on the same line as the key
       docs.push(
         @pretty.concat([
           key_leading,
