@@ -417,6 +417,21 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
           ]),
         )
       }
+      YSequence(inner_elements, YamlCollectionStyle::Block, trivia) => {
+        // Nested sequences within sequences are problematic because the parser
+        // can't distinguish between continuation of nested vs new outer elements.
+        // Use flow style for nested sequences to make output unambiguous.
+        // This produces "- [- a, - b]" instead of "- - a\n  - b"
+        let leading = trivia_to_doc(trivia.leading, true)
+        // Build flow-style representation of the nested sequence
+        let inner_docs : Array[@pretty.Doc] = []
+        for j = 0; j < inner_elements.length(); j = j + 1 {
+          let inner_elem = node_to_doc(inner_elements[j], indent)
+          inner_docs.push(inner_elem)
+        }
+        let inner_joined = @pretty.join(inner_docs, @pretty.text(", "))
+        docs.push(@pretty.concat([leading, @pretty.text("- ["), inner_joined, @pretty.text("]")]))
+      }
       _ => {
         let elem_doc = node_to_doc(elem, indent + 2)
         docs.push(@pretty.concat([@pretty.text("- "), elem_doc]))

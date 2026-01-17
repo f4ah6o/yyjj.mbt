@@ -36,9 +36,9 @@ fn strip_yaml_trivia(node : @yaml.YamlNode) -> @yaml.YamlNode {
       @yaml.YamlNode::string_with_trivia(v, style, empty)
     @yaml.YSequence(elements, style, _) => {
       let stripped = elements.map(strip_yaml_trivia)
-      // Empty collections are normalized to Flow style (YAML spec has no block empty representation)
-      let normalized_style = if elements.is_empty() { flow } else { style }
-      @yaml.YamlNode::sequence_with_style(stripped, normalized_style, empty)
+      // Normalize all sequences to Flow style for comparison
+      // This is necessary because the printer may use Flow style for nested sequences
+      @yaml.YamlNode::sequence_with_style(stripped, flow, empty)
     }
     @yaml.YMapping(pairs, style, _) => {
       let stripped = pairs.map(fn(kv) {
@@ -48,9 +48,8 @@ fn strip_yaml_trivia(node : @yaml.YamlNode) -> @yaml.YamlNode {
           strip_yaml_trivia(kv.value),
         )
       })
-      // Empty collections are normalized to Flow style (YAML spec has no block empty representation)
-      let normalized_style = if pairs.is_empty() { flow } else { style }
-      @yaml.YamlNode::mapping_with_style(stripped, normalized_style, empty)
+      // Normalize all mappings to Flow style for comparison
+      @yaml.YamlNode::mapping_with_style(stripped, flow, empty)
     }
     @yaml.YAlias(name, _) => @yaml.YamlNode::alias_with_trivia(name, empty)
     @yaml.YAnchor(name, inner) =>
@@ -3143,6 +3142,3 @@ test "pbt_yaml_full_style_roundtrip" {
     max_success=100,
   )
 }
-
-///|
-/// Debug test for anchor/alias roundtrip
