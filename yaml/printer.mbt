@@ -86,11 +86,20 @@ fn string_to_doc(
   style : YamlScalarStyle,
   indent : Int,
 ) -> @pretty.Doc {
-  // Handle empty strings - quote them appropriately for each style
+  // Handle empty strings - preserve their original style
   if s.is_empty() {
     match style {
       SingleQuoted => @pretty.text("''")
-      _ => @pretty.text("\"\"")
+      DoubleQuoted => @pretty.text("\"\"")
+      Plain => @pretty.text("")
+      Literal => {
+        let block_indent = if indent <= 2 { 2 } else { indent - 2 }
+        literal_block_to_doc(s, block_indent)
+      }
+      Folded => {
+        let block_indent = if indent <= 2 { 2 } else { indent - 2 }
+        folded_block_to_doc(s, block_indent)
+      }
     }
   } else {
     match style {
@@ -271,10 +280,10 @@ fn split_newlines(s : String) -> Array[String] {
 ///|
 /// Format a literal block with proper indentation for its nesting level
 fn literal_block_to_doc(s : String, indent : Int) -> @pretty.Doc {
-  let lines = split_newlines(s)
-  if lines.is_empty() {
+  if s.is_empty() {
     return @pretty.concat([@pretty.text("|"), @pretty.hardline()])
   }
+  let lines = split_newlines(s)
   let all_docs : Array[@pretty.Doc] = []
   for i = 0; i < lines.length(); i = i + 1 {
     let line = lines[i]
