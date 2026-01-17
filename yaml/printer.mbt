@@ -65,27 +65,24 @@ fn needs_quoting(s : String) -> Bool {
     return true
   }
   // Check for characters that require quoting in Plain scalars
-  // These include: : [ ] { } , # " ' | > & * % @ ` \
+  // Note: Backslash is valid in plain scalars and does not require quoting
+  // Note: Colon (:) only requires quoting when followed by space or at end
   for i = 0; i < s.length(); i = i + 1 {
     let ch = s[i].to_int().unsafe_to_char()
     match ch {
-      ':'
-      | '['
-      | ']'
-      | '{'
-      | '}'
-      | ','
-      | '#'
-      | '"'
-      | '\''
-      | '|'
-      | '>'
-      | '&'
-      | '*'
-      | '%'
-      | '@'
-      | '`'
-      | '\\' => return true
+      ':' => {
+        // Colon only requires quoting when followed by space/tab/newline or at end
+        // (to distinguish from key-value separator)
+        let at_end = i + 1 >= s.length()
+        if at_end {
+          return true
+        }
+        let next = s[i + 1].to_int().unsafe_to_char()
+        if next == ' ' || next == '\t' || next == '\n' || next == '\r' {
+          return true
+        }
+      }
+      '[' | ']' | '{' | '}' | ',' | '#' | '"' | '\'' | '|' | '>' | '&' | '*' | '%' | '@' | '`' => return true
       _ => ()
     }
   }
