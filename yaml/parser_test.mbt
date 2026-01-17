@@ -285,3 +285,43 @@ test "yaml_parse_large_mapping" {
   }
   inspect(pairs.length(), content="100")
 }
+
+///|
+test "yaml_plain_string_with_trailing_spaces_roundtrip" {
+  // Test that trailing spaces are preserved by quoting
+  let test_str = "test "
+  let node = @yaml.YamlNode::string_with_trivia(
+    test_str,
+    @yaml.YamlScalarStyle::plain(),
+    @common.Trivia::empty(),
+  )
+  let printed = @yaml.print(node)
+  // Should be quoted to preserve trailing space
+  inspect(printed, content="\"test \"")
+  match @yaml.parse(printed) {
+    Ok(@yaml.YString(parsed_s, _, _)) => {
+      inspect(parsed_s, content="test ")
+    }
+    _ => inspect("ERROR", content="")
+  }
+}
+
+///|
+test "yaml_plain_string_with_leading_spaces_roundtrip" {
+  // Test that leading spaces are preserved by quoting
+  let test_str = " test"
+  let node = @yaml.YamlNode::string_with_trivia(
+    test_str,
+    @yaml.YamlScalarStyle::plain(),
+    @common.Trivia::empty(),
+  )
+  let printed = @yaml.print(node)
+  // Should be quoted to preserve leading space
+  inspect(printed, content="\" test\"")
+  match @yaml.parse(printed) {
+    Ok(@yaml.YString(parsed_s, _, _)) => {
+      inspect(parsed_s, content=" test")
+    }
+    _ => inspect("ERROR", content="")
+  }
+}

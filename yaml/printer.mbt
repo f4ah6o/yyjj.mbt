@@ -64,6 +64,16 @@ fn needs_quoting(s : String) -> Bool {
   if s.is_empty() {
     return true
   }
+  // Check for leading spaces (not preserved in plain scalars in block context)
+  let first_char = s[0].to_int().unsafe_to_char()
+  if first_char == ' ' || first_char == '\t' {
+    return true
+  }
+  // Check for trailing spaces (always trimmed in plain scalars)
+  let last_char = s[s.length() - 1].to_int().unsafe_to_char()
+  if last_char == ' ' || last_char == '\t' {
+    return true
+  }
   // Check for characters that require quoting in Plain scalars
   // Note: Backslash is valid in plain scalars and does not require quoting
   // Note: Colon (:) only requires quoting when followed by space or at end
