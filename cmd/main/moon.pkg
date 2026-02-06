@@ -1,4 +1,8 @@
-import { "f4ah6o/yyjj" as @lib, "moonbitlang/x/fs" as @fs }
+import {
+  "f4ah6o/yyjj" as @lib,
+  "moonbitlang/core/env" as @env,
+  "moonbitlang/x/fs" as @fs,
+}
 
 options(
   "is-main": true,

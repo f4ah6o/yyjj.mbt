@@ -1,4 +1,4 @@
-
+///|
 test "empty_string_double_quoted_roundtrip" {
   let yaml = "key: \"\""
   match @yaml.parse(yaml) {
@@ -11,13 +11,14 @@ test "empty_string_double_quoted_roundtrip" {
           let rt_stripped = strip_yaml_trivia(roundtripped)
           inspect(orig_stripped == rt_stripped, content="true")
         }
-        Err(e) => inspect(false, content="Failed to parse roundtripped")
+        Err(_) => inspect(false, content="Failed to parse roundtripped")
       }
     }
-    Err(e) => inspect(false, content="Failed to parse initial")
+    Err(_) => inspect(false, content="Failed to parse initial")
   }
 }
 
+///|
 test "empty_string_single_quoted_roundtrip" {
   let yaml = "key: ''"
   match @yaml.parse(yaml) {
@@ -30,13 +31,14 @@ test "empty_string_single_quoted_roundtrip" {
           let rt_stripped = strip_yaml_trivia(roundtripped)
           inspect(orig_stripped == rt_stripped, content="true")
         }
-        Err(e) => inspect(false, content="Failed to parse roundtripped")
+        Err(_) => inspect(false, content="Failed to parse roundtripped")
       }
     }
-    Err(e) => inspect(false, content="Failed to parse initial")
+    Err(_) => inspect(false, content="Failed to parse initial")
   }
 }
 
+///|
 test "empty_string_literal_roundtrip" {
   let yaml = "key: |\n"
   match @yaml.parse(yaml) {
@@ -48,13 +50,14 @@ test "empty_string_literal_roundtrip" {
           let rt_stripped = strip_yaml_trivia(roundtripped)
           inspect(orig_stripped == rt_stripped, content="true")
         }
-        Err(e) => inspect(false, content="Failed to parse roundtripped")
+        Err(_) => inspect(false, content="Failed to parse roundtripped")
       }
     }
-    Err(e) => inspect(false, content="Failed to parse initial")
+    Err(_) => inspect(false, content="Failed to parse initial")
   }
 }
 
+///|
 test "empty_string_folded_roundtrip" {
   let yaml = "key: >\n"
   match @yaml.parse(yaml) {
@@ -66,13 +69,14 @@ test "empty_string_folded_roundtrip" {
           let rt_stripped = strip_yaml_trivia(roundtripped)
           inspect(orig_stripped == rt_stripped, content="true")
         }
-        Err(e) => inspect(false, content="Failed to parse roundtripped")
+        Err(_) => inspect(false, content="Failed to parse roundtripped")
       }
     }
-    Err(e) => inspect(false, content="Failed to parse initial")
+    Err(_) => inspect(false, content="Failed to parse initial")
   }
 }
 
+///|
 test "folded_block_multiline_formatting" {
   let yaml_str = "key: >\n  wrapped\n  text\n  becomes single"
   match @yaml.parse(yaml_str) {
@@ -86,9 +90,9 @@ test "folded_block_multiline_formatting" {
           let rt_stripped = strip_yaml_trivia(roundtripped)
           inspect(orig_stripped == rt_stripped, content="true")
         }
-        Err(e) => inspect(false, content="Failed to parse roundtripped")
+        Err(_) => inspect(false, content="Failed to parse roundtripped")
       }
     }
-    Err(e) => inspect(false, content="Failed to parse initial")
+    Err(_) => inspect(false, content="Failed to parse initial")
   }
 }

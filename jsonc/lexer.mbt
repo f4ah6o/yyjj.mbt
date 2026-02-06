@@ -66,7 +66,7 @@ fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> String {
     let _ = self.advance()
 
   }
-  self.source.substring(start~, end=self.pos)
+  (try! self.source[start:self.pos]).to_string()
 }
 
 ///|
@@ -348,7 +348,7 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
 
     }
   }
-  let num = self.source.substring(start=num_start, end=self.pos)
+  let num = (try! self.source[num_start:self.pos]).to_string()
   Token::new(Number(num), @common.Span::new(start, self.current_pos()))
 }
 
@@ -371,9 +371,7 @@ fn Lexer::lex_keyword(
         let ident = self.skip_while(fn(c) { is_ident_char(c) })
         return Token::new(
           Invalid(
-            "unexpected identifier: " +
-            expected.substring(start=0, end=i) +
-            ident,
+            "unexpected identifier: " + (try! expected[:i]).to_string() + ident,
           ),
           @common.Span::new(start, self.current_pos()),
         )

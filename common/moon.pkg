@@ -1,3 +1,7 @@
+import {
+  "moonbitlang/core/quickcheck" as @core_qc,
+}
+
 options(
   link: {
     "js": {

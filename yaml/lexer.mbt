@@ -286,7 +286,7 @@ fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> String {
     let _ = self.advance()
 
   }
-  self.source.substring(start~, end=self.pos)
+  (try! self.source[start:self.pos]).to_string()
 }
 
 ///|
@@ -458,9 +458,9 @@ fn Lexer::lex_literal_block(self : Lexer, start : @common.Pos) -> Token {
         let second_idx = len - 2
         let second_last = content[second_idx].to_int().unsafe_to_char()
         if second_last == '\r' {
-          content.substring(end=second_idx)
+          (try! content[:second_idx]).to_string()
         } else {
-          content.substring(end=last_idx)
+          (try! content[:last_idx]).to_string()
         }
       } else {
         ""
@@ -582,7 +582,7 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
   }
   // Get the scalar string (trimmed of trailing whitespace)
   let start_byte = start.offset
-  let scalar = self.source.substring(start=start_byte, end=last_non_space_pos)
+  let scalar = (try! self.source[start_byte:last_non_space_pos]).to_string()
   // Check for keywords
   let kind : TokenKind = match scalar {
     "null" | "Null" | "NULL" | "~" => NullValue
@@ -636,17 +636,3 @@ fn is_anchor_char(c : Char) -> Bool {
 }
 
 ///|
-fn is_blank_line(lexer : Lexer) -> Bool {
-  let mut idx = lexer.pos
-  while idx < lexer.source.length() {
-    let ch = lexer.source[idx].to_int().unsafe_to_char()
-    if ch == '\n' || ch == '\r' {
-      return true
-    }
-    if ch != ' ' && ch != '\t' {
-      return false
-    }
-    idx += 1
-  }
-  true // EOF counts as blank
-}

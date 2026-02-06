@@ -7,7 +7,6 @@ test "literal_block_dynamic_indent" {
   // The lexer should read all lines with >= block_indent spaces
   let source1 = "key: |\n    deeply indented\n  less indented"
   let result1 = @yaml.parse(source1)
-
   match result1 {
     Ok(parsed) => {
       let content = match parsed {
@@ -32,9 +31,17 @@ test "anchor_alias_nested_mapping_roundtrip" {
   let inner_map = @yaml.YamlNode::mapping_with_trivia(
     [
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("a", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "a",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
-        @yaml.YamlNode::string_with_trivia("value", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "value",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
       ),
     ],
     @common.Trivia::empty(),
@@ -42,42 +49,62 @@ test "anchor_alias_nested_mapping_roundtrip" {
   let outer_map = @yaml.YamlNode::mapping_with_trivia(
     [
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("key1", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "key1",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
-        @yaml.YamlNode::string_with_trivia("value1", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "value1",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
       ),
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("key2", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "key2",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
         @yaml.YamlNode::anchor("anchor1", inner_map),
       ),
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("key3", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "key3",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
         @yaml.YamlNode::alias_with_trivia("anchor1", @common.Trivia::empty()),
       ),
     ],
     @common.Trivia::empty(),
   )
-
   let printed = @yaml.print(outer_map)
-  inspect(printed, content=(
-    #|key1: value1
-    #|key2: &anchor1
-    #|  a: value
-    #|key3: *anchor1
-  ))
-
+  inspect(
+    printed,
+    content=(
+      #|key1: value1
+      #|key2: &anchor1
+      #|  a: value
+      #|key3: *anchor1
+    ),
+  )
   let parsed_result = @yaml.parse(printed)
   match parsed_result {
     Ok(parsed) => {
       let reparsed = @yaml.print(parsed)
-      inspect(reparsed, content=(
-        #|key1: value1
-        #|key2: &anchor1
-        #|  a: value
-        #|key3: *anchor1
-      ))
+      inspect(
+        reparsed,
+        content=(
+          #|key1: value1
+          #|key2: &anchor1
+          #|  a: value
+          #|key3: *anchor1
+        ),
+      )
     }
     Err(e) => inspect(false, content="Parse error: " + e.to_string())
   }
@@ -89,8 +116,16 @@ test "nested_sequence_in_mapping_roundtrip" {
   // Create a mapping with a nested sequence as value
   let inner_seq = @yaml.YamlNode::sequence_with_style(
     [
-      @yaml.YamlNode::string_with_trivia("a", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
-      @yaml.YamlNode::string_with_trivia("b", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+      @yaml.YamlNode::string_with_trivia(
+        "a",
+        @yaml.YamlScalarStyle::plain(),
+        @common.Trivia::empty(),
+      ),
+      @yaml.YamlNode::string_with_trivia(
+        "b",
+        @yaml.YamlScalarStyle::plain(),
+        @common.Trivia::empty(),
+      ),
     ],
     @yaml.YamlCollectionStyle::block(),
     @common.Trivia::empty(),
@@ -103,27 +138,35 @@ test "nested_sequence_in_mapping_roundtrip" {
   let mapping = @yaml.YamlNode::mapping_with_trivia(
     [
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("key", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "key",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
         outer_seq,
       ),
     ],
     @common.Trivia::empty(),
   )
-
   let printed = @yaml.print(mapping)
   // Nested sequences are converted to flow style for unambiguous parsing
-  inspect(printed, content=
-    #|key:
-    #|  - [a, b]
+  inspect(
+    printed,
+    content=(
+      #|key:
+      #|  - [a, b]
+    ),
   )
-
   match @yaml.parse(printed) {
     Ok(parsed) => {
       let reparsed = @yaml.print(parsed)
-      inspect(reparsed, content=
-        #|key:
-        #|  - [a, b]
+      inspect(
+        reparsed,
+        content=(
+          #|key:
+          #|  - [a, b]
+        ),
       )
     }
     Err(e) => inspect(false, content="Parse error: " + e.to_string())
@@ -140,13 +183,14 @@ test "special_chars_double_quoted_roundtrip" {
     @yaml.YamlScalarStyle::double_quoted(),
     @common.Trivia::empty(),
   )
-
   let printed = @yaml.print(node)
   // The string should be printed with double quotes and proper escaping
-  inspect(printed, content=
-    #|"5.3-5T1\"i~}\\\\ekfvG'3'0 0"
+  inspect(
+    printed,
+    content=(
+      #|"5.3-5T1\"i~}\\\\ekfvG'3'0 0"
+    ),
   )
-
   match @yaml.parse(printed) {
     Ok(parsed) => {
       let parsed_content = match parsed {
@@ -167,15 +211,27 @@ test "actual_failing_pbt_anchor_alias_case" {
   let inner_map = @yaml.YamlNode::mapping_with_trivia(
     [
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("IQGbOIT", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "IQGbOIT",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
         @yaml.YamlNode::anchor(
           "p_-34GA",
-          @yaml.YamlNode::string_with_trivia("DopbOkw", @yaml.YamlScalarStyle::single_quoted(), @common.Trivia::empty()),
+          @yaml.YamlNode::string_with_trivia(
+            "DopbOkw",
+            @yaml.YamlScalarStyle::single_quoted(),
+            @common.Trivia::empty(),
+          ),
         ),
       ),
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("SgfDq7Spz8fEh", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "SgfDq7Spz8fEh",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
         @yaml.YamlNode::alias_with_trivia("p_-34GA", @common.Trivia::empty()),
       ),
@@ -185,29 +241,37 @@ test "actual_failing_pbt_anchor_alias_case" {
   let outer_map = @yaml.YamlNode::mapping_with_trivia(
     [
       @yaml.YKeyValue::new(
-        @yaml.YamlNode::string_with_trivia("wJ1Rh", @yaml.YamlScalarStyle::plain(), @common.Trivia::empty()),
+        @yaml.YamlNode::string_with_trivia(
+          "wJ1Rh",
+          @yaml.YamlScalarStyle::plain(),
+          @common.Trivia::empty(),
+        ),
         @common.Trivia::empty(),
         inner_map,
       ),
     ],
     @common.Trivia::empty(),
   )
-
   let printed = @yaml.print(outer_map)
-  inspect(printed, content=(
-    #|wJ1Rh:
-    #|  IQGbOIT: &p_-34GA 'DopbOkw'
-    #|  SgfDq7Spz8fEh: *p_-34GA
-  ))
-
+  inspect(
+    printed,
+    content=(
+      #|wJ1Rh:
+      #|  IQGbOIT: &p_-34GA 'DopbOkw'
+      #|  SgfDq7Spz8fEh: *p_-34GA
+    ),
+  )
   match @yaml.parse(printed) {
     Ok(parsed) => {
       let reparsed = @yaml.print(parsed)
-      inspect(reparsed, content=(
-        #|wJ1Rh:
-        #|  IQGbOIT: &p_-34GA 'DopbOkw'
-        #|  SgfDq7Spz8fEh: *p_-34GA
-      ))
+      inspect(
+        reparsed,
+        content=(
+          #|wJ1Rh:
+          #|  IQGbOIT: &p_-34GA 'DopbOkw'
+          #|  SgfDq7Spz8fEh: *p_-34GA
+        ),
+      )
     }
     Err(e) => inspect(false, content="Parse error: " + e.to_string())
   }
@@ -218,12 +282,11 @@ test "actual_failing_pbt_anchor_alias_case" {
 test "literal_block_with_special_chars" {
   // Test various special characters that might be filtered
   let test_cases = [
-    ("[value", "bracket"),  // Starting bracket
-    ("{value", "brace"),     // Starting brace
-    (":value", "colon"),     // Starting colon
-    ("#value", "hash"),      // Starting hash
+    ("[value", "bracket"), // Starting bracket
+    ("{value", "brace"), // Starting brace
+    (":value", "colon"), // Starting colon
+    ("#value", "hash"), // Starting hash
   ]
-
   for i = 0; i < test_cases.length(); i = i + 1 {
     let (content, _desc) = test_cases[i]
     let node = @yaml.YamlNode::string_with_trivia(
@@ -233,7 +296,6 @@ test "literal_block_with_special_chars" {
     )
     let printed = @yaml.print(node)
     let parsed_result = @yaml.parse(printed)
-
     match parsed_result {
       Ok(parsed) => {
         // Verify roundtrip preserves the content
@@ -241,7 +303,7 @@ test "literal_block_with_special_chars" {
           @yaml.YamlNode::YString(s, _, _) => s
           _ => "FAIL: not a string node"
         }
-        inspect(parsed_content, content=content)
+        inspect(parsed_content, content~)
       }
       Err(_) => inspect(false, content="Failed to parse: " + content)
     }
@@ -344,7 +406,6 @@ test "pbt_failing_case_anchor_alias" {
           #|  
           #|  _: &__ 'zWee'
           #|KU5ACG: *__
-
         ),
       )
     }

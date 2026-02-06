@@ -442,7 +442,14 @@ fn sequence_to_doc(elements : Array[YamlNode], indent : Int) -> @pretty.Doc {
           inner_docs.push(inner_elem)
         }
         let inner_joined = @pretty.join(inner_docs, @pretty.text(", "))
-        docs.push(@pretty.concat([leading, @pretty.text("- ["), inner_joined, @pretty.text("]")]))
+        docs.push(
+          @pretty.concat([
+            leading,
+            @pretty.text("- ["),
+            inner_joined,
+            @pretty.text("]"),
+          ]),
+        )
       }
       _ => {
         let elem_doc = node_to_doc(elem, indent + 2)
@@ -492,11 +499,10 @@ fn mapping_to_doc(pairs : Array[YKeyValue], indent : Int) -> @pretty.Doc {
 
     // Special handling for anchored values - extract anchor to print inline with key
     match pair.value {
-      YAnchor(name, anchor_value) => {
+      YAnchor(_, _) => {
         let (inner_names, inner_value) = unwrap_anchors(pair.value)
         let anchor_text = inner_names.map(fn(n) { "&" + n }).join(" ")
         let is_inner_nested = is_nested_structure(inner_value)
-
         if is_inner_nested {
           // Print key: &anchor on same line, nested structure below
           let inner_doc = node_to_doc(inner_value, indent + 2)

@@ -2,9 +2,9 @@
   "name": "f4ah6o/yyjj",
   "version": "2026.1.0",
   "deps": {
-    "moonbitlang/x": "0.4.38",
-    "mizchi/js": "0.10.10",
-    "moonbitlang/quickcheck": "0.9.9"
+    "moonbitlang/x": "0.4.40",
+    "mizchi/js": "0.10.11",
+    "moonbitlang/quickcheck": "0.9.10"
   },
   "readme": "README.mbt.md",
   "repository": "https://github.com/f4ah6o/yyjj.mbt",
