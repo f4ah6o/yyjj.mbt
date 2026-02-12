@@ -1,4 +1,6 @@
-
+import {
+  "moonbitlang/core/quickcheck" @core_qc,
+}
 
 options(
   link: {
@@ -12,6 +14,3 @@ options(
     },
   },
 )
-import {
-  "moonbitlang/core/quickcheck" @core_qc,
-}
