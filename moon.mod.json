@@ -3,7 +3,7 @@
   "version": "2026.1.0",
   "deps": {
     "moonbitlang/x": "0.4.40",
-    "mizchi/js": "0.10.11",
+    "mizchi/js": "0.10.14",
     "moonbitlang/quickcheck": "0.9.10"
   },
   "readme": "README.mbt.md",
