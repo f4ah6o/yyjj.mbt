@@ -1,5 +1,5 @@
 import {
-  "f4ah6o/yyjj/common" as @common,
-  "f4ah6o/yyjj/pretty" as @pretty,
-  "moonbitlang/core/quickcheck" as @core_qc,
+  "f4ah6o/yyjj/common" @common,
+  "f4ah6o/yyjj/pretty" @pretty,
+  "moonbitlang/core/quickcheck" @core_qc,
 }

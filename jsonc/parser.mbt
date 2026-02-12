@@ -74,7 +74,6 @@ fn Parser::skip_trivia(self : Parser) -> Unit {
     match self.peek_kind() {
       Some(Whitespace(_)) => {
         let _ = self.advance()
-
       }
       Some(Newline) => {
         let _ = self.advance()
@@ -125,7 +124,6 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
     match self.peek_kind() {
       Some(Whitespace(_)) => {
         let _ = self.advance()
-
       }
       Some(LineComment(content)) => {
         // Line comment on same line is trailing
@@ -215,7 +213,6 @@ fn Parser::collect_trailing_after_bracket(
       }
       Some(Whitespace(_)) => {
         let _ = self.advance()
-
       }
       Some(Newline) => {
         let _ = self.advance()
@@ -402,7 +399,6 @@ fn Parser::parse_object(
     match self.peek_kind() {
       Some(Comma) => {
         let _ = self.advance()
-
       }
       Some(RBrace) => break
       _ =>
@@ -456,7 +452,6 @@ fn Parser::parse_array(
     match self.peek_kind() {
       Some(Comma) => {
         let _ = self.advance()
-
       }
       Some(RBracket) => break
       _ =>

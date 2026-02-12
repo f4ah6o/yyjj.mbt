@@ -64,7 +64,6 @@ fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> String {
   let start = self.pos
   while not(self.is_eof()) && pred(self.char_at(self.pos)) {
     let _ = self.advance()
-
   }
   (try! self.source[start:self.pos]).to_string()
 }
@@ -122,7 +121,6 @@ pub fn Lexer::next_token(self : Lexer) -> Token {
           // Handle \r\n as single newline
           if self.peek() == Some('\n') {
             let _ = self.advance()
-
           }
           Token::new(Newline, @common.Span::new(start, self.current_pos()))
         }
@@ -190,7 +188,6 @@ fn Lexer::lex_string(self : Lexer, start : @common.Pos) -> Token {
                     Some(h) if is_hex_digit(h) => {
                       hex = hex + h.to_string()
                       let _ = self.advance()
-
                     }
                     _ =>
                       return Token::new(
@@ -295,19 +292,16 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
   // Optional minus
   if self.peek() == Some('-') {
     let _ = self.advance()
-
   }
   // Integer part
   match self.peek() {
     Some('0') => {
       let _ = self.advance()
-
     }
     Some(c) if c >= '1' && c <= '9' => {
       let _ = self.advance()
       while self.peek() is Some(d) && d >= '0' && d <= '9' {
         let _ = self.advance()
-
       }
     }
     _ =>
@@ -327,7 +321,6 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
     }
     while self.peek() is Some(d) && d >= '0' && d <= '9' {
       let _ = self.advance()
-
     }
   }
   // Exponent part
@@ -335,7 +328,6 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
     let _ = self.advance()
     if self.peek() is Some(s) && (s == '+' || s == '-') {
       let _ = self.advance()
-
     }
     if not(self.peek() is Some(d) && d >= '0' && d <= '9') {
       return Token::new(
@@ -345,7 +337,6 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
     }
     while self.peek() is Some(d) && d >= '0' && d <= '9' {
       let _ = self.advance()
-
     }
   }
   let num = (try! self.source[num_start:self.pos]).to_string()
@@ -364,7 +355,6 @@ fn Lexer::lex_keyword(
     match self.peek() {
       Some(c) if c == expected[i].to_int().unsafe_to_char() => {
         let _ = self.advance()
-
       }
       _ => {
         // Not a keyword, might be an identifier (invalid in JSON)

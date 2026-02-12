@@ -119,7 +119,6 @@ fn Parser::skip_trivia(self : Parser) -> Unit {
     match self.peek_kind() {
       Some(Whitespace(_)) => {
         let _ = self.advance()
-
       }
       Some(Newline) => {
         let _ = self.advance()
@@ -160,7 +159,6 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
     match self.peek_kind() {
       Some(Whitespace(_)) => {
         let _ = self.advance()
-
       }
       Some(Comment(content)) => {
         if not(self.saw_newline) {
@@ -222,7 +220,6 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       // Check if this is a mapping key
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
-
       }
       if self.peek_kind() == Some(Colon) {
         self.parse_mapping_with_first_key("null", Plain, leading)
@@ -236,7 +233,6 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       // Check if this is a mapping key (e.g., "on:" in GitHub Actions)
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
-
       }
       if self.peek_kind() == Some(Colon) {
         // Preserve the original keyword (on, yes, true, etc.) as the key
@@ -251,7 +247,6 @@ fn Parser::parse_value(self : Parser) -> Result[YamlNode, @common.ParseError] {
       // Check if this is a mapping key
       while self.peek_kind() is Some(Whitespace(_)) {
         let _ = self.advance()
-
       }
       if self.peek_kind() == Some(Colon) {
         // Preserve the original keyword (off, no, false, etc.) as the key
@@ -320,7 +315,6 @@ fn Parser::parse_scalar_or_mapping(
   // This is critical for multi-key mappings
   while self.peek_kind() is Some(Whitespace(_)) {
     let _ = self.advance()
-
   }
   if self.peek_kind() == Some(Colon) {
     // This is a mapping
@@ -436,14 +430,12 @@ fn Parser::parse_mapping_with_first_key(
               // Consume any remaining dedents
               while self.peek_kind() is Some(Dedent(_)) {
                 let _ = self.advance()
-
               }
             }
             break
           }
           // Consume this dedent (at or above base indent)
           let _ = self.advance()
-
         }
         self.skip_trivia()
         let next_kind = self.peek_kind()
@@ -570,7 +562,6 @@ fn Parser::parse_block_sequence(
         }
         if should_consume {
           let _ = self.advance()
-
         }
         // Check if there's another dash at this level (sibling sequence item)
         // This handles the case where a nested mapping exits and we're back at sequence level
@@ -614,7 +605,6 @@ fn Parser::parse_flow_sequence(
   }
   if self.peek_kind() == Some(RBracket) {
     let _ = self.advance()
-
   }
   let trailing = self.collect_trailing()
   Ok(
@@ -677,7 +667,6 @@ fn Parser::parse_flow_mapping(
     // Skip whitespace only to find colon - don't skip comments
     while self.peek_kind() is Some(Whitespace(_)) {
       let _ = self.advance()
-
     }
 
     // Collect trailing comments after colon
@@ -703,7 +692,6 @@ fn Parser::parse_flow_mapping(
   }
   if self.peek_kind() == Some(RBrace) {
     let _ = self.advance()
-
   }
   let trailing = self.collect_trailing()
   Ok(
@@ -815,7 +803,6 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
-
         }
       }
       Some(SingleQuotedScalar(s)) => {
@@ -826,7 +813,6 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
-
         }
       }
       Some(DoubleQuotedScalar(s)) => {
@@ -837,7 +823,6 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
-
         }
       }
       Some(TrueValue(original)) => {
@@ -848,7 +833,6 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
-
         }
       }
       Some(FalseValue(original)) => {
@@ -859,7 +843,6 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
-
         }
       }
       Some(NullValue) => {
@@ -870,7 +853,6 @@ fn Parser::parse_indented_mapping(
         // Skip only whitespace on the same line - don't skip comments
         while self.peek_kind() is Some(Whitespace(_)) {
           let _ = self.advance()
-
         }
       }
       Some(Indent(_)) => {

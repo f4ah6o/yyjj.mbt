@@ -1,7 +1,7 @@
 import {
-  "f4ah6o/yyjj" as @lib,
-  "moonbitlang/core/env" as @env,
-  "moonbitlang/x/fs" as @fs,
+  "f4ah6o/yyjj" @lib,
+  "moonbitlang/core/env" @env,
+  "moonbitlang/x/fs" @fs,
 }
 
 options(

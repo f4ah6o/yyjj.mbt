@@ -1,5 +1,5 @@
 import {
-  "f4ah6o/yyjj/common" as @common,
-  "f4ah6o/yyjj/jsonc" as @jsonc,
-  "f4ah6o/yyjj/yaml" as @yaml,
+  "f4ah6o/yyjj/common" @common,
+  "f4ah6o/yyjj/jsonc" @jsonc,
+  "f4ah6o/yyjj/yaml" @yaml,
 }
