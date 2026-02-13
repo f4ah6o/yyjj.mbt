@@ -47,10 +47,12 @@ jobs:
 
       - name: Build package
         run: |
+          pnpm run clean
           moon build --target js
           mkdir -p target/js/release
           ln -sfn "$PWD/_build/js/debug/build" target/js/release/build
-          pnpm build
+          pnpm run build:bundle
+          pnpm run build:types
 
       - name: Build demo
         working-directory: examples
