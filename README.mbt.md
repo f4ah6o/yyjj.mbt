@@ -202,6 +202,65 @@ if (result.$tag === 0) {  // Error
 }
 ```
 
+## Command-Line Interface
+
+yyjj ships with a CLI for quick JSONC ⇔ YAML conversion on the shell.
+
+### Build
+
+The CLI is a MoonBit binary targeting JS. From a clone of this repo:
+
+```bash
+moon build --target js
+# The runnable bundle lands under target/js/release/build/cmd/main/
+```
+
+### Subcommands
+
+```text
+yyjj to-yaml  [<input>] [-f <file>|-] [-o <file>] [-w <N>]
+yyjj to-jsonc [<input>] [-f <file>|-] [-o <file>] [-w <N>]
+yyjj help
+```
+
+### Options
+
+| Flag                | Description                                           |
+| ------------------- | ----------------------------------------------------- |
+| `-f, --file <path>` | Read input from file. `-` reads from stdin.           |
+| `-o, --output <p>`  | Write output to file (default: stdout).               |
+| `-w, --width <N>`   | Line width for printing (default: 80).                |
+
+When neither a positional argument nor `-f` is given, input is read from stdin.
+
+### Examples
+
+```bash
+# Inline string
+yyjj to-yaml '{"name": "test"}'
+
+# File in, file out
+yyjj to-yaml -f config.jsonc -o config.yaml
+
+# Unix pipe
+cat config.jsonc | yyjj to-yaml > config.yaml
+
+# YAML back to JSONC with a custom width
+yyjj to-jsonc -f config.yaml -w 120
+```
+
+### Error output
+
+Parse errors are rendered with a source excerpt and a caret pointing at the
+offending location:
+
+```text
+error at line 2, column 8: unexpected token: foo
+  1 | key: value
+  2 |   next: foo
+    |        ^
+```
+
 ## Advanced Usage
 
 ### Custom Line Width

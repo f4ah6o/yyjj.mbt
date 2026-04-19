@@ -98,7 +98,7 @@ fn run_convert(
         Err(msg) => println("Error: \{msg}")
         Ok(input) =>
           match convert(input, opts.width) {
-            Err(e) => println("Error: \{e.format()}")
+            Err(e) => println("Error: \{e.format_pretty(input)}")
             Ok(result) =>
               match emit_output(opts, result) {
                 Err(msg) => println("Error: \{msg}")

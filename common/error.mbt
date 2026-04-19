@@ -115,3 +115,90 @@ pub fn ParseError::format(self : ParseError) -> String {
   ": " +
   self.message
 }
+
+///|
+/// Format the error with a source excerpt and an ASCII caret pointing at the
+/// offending location. Lines are 1-indexed in the output. Passes through the
+/// source text unchanged.
+///
+/// Example output:
+///
+///     error at line 2, column 8: unexpected token: foo
+///       1 | key: value
+///       2 |   next: foo
+///         |        ^
+pub fn ParseError::format_pretty(self : ParseError, source : String) -> String {
+  let header = self.format()
+  let target_line = self.span.start.line
+  let target_col = self.span.start.column
+  let lines = split_lines(source)
+  if target_line < 0 || target_line >= lines.length() {
+    return header
+  }
+  let line_number_text = (target_line + 1).to_string()
+  let gutter_width = line_number_text.length()
+  let buf = StringBuilder::new()
+  buf.write_string(header)
+  buf.write_char('\n')
+  if target_line > 0 {
+    let prev_num = target_line.to_string()
+    let prev_pad = repeat_char(' ', gutter_width - prev_num.length())
+    buf.write_string("  ")
+    buf.write_string(prev_pad)
+    buf.write_string(prev_num)
+    buf.write_string(" | ")
+    buf.write_string(lines[target_line - 1])
+    buf.write_char('\n')
+  }
+  buf.write_string("  ")
+  buf.write_string(line_number_text)
+  buf.write_string(" | ")
+  buf.write_string(lines[target_line])
+  buf.write_char('\n')
+  let gutter_blank = repeat_char(' ', gutter_width)
+  buf.write_string("  ")
+  buf.write_string(gutter_blank)
+  buf.write_string(" | ")
+  let caret_padding = repeat_char(' ', target_col)
+  buf.write_string(caret_padding)
+  buf.write_char('^')
+  buf.to_string()
+}
+
+///|
+/// Repeat a character count times.
+fn repeat_char(ch : Char, count : Int) -> String {
+  if count <= 0 {
+    return ""
+  }
+  let buf = StringBuilder::new()
+  for i = 0; i < count; i = i + 1 {
+    buf.write_char(ch)
+  }
+  buf.to_string()
+}
+
+///|
+/// Split source text into lines on '\n'. Strips a trailing '\r' on each line
+/// so CRLF inputs format the same as LF inputs. Preserves empty lines.
+fn split_lines(source : String) -> Array[String] {
+  let lines : Array[String] = []
+  let buf = StringBuilder::new()
+  for ch in source {
+    if ch == '\n' {
+      let line = buf.to_string()
+      let trimmed = if line.length() > 0 &&
+        line[line.length() - 1].to_int().unsafe_to_char() == '\r' {
+        line[:line.length() - 1].to_string()
+      } else {
+        line
+      }
+      lines.push(trimmed)
+      buf.reset()
+    } else {
+      buf.write_char(ch)
+    }
+  }
+  lines.push(buf.to_string())
+  lines
+}
