@@ -3167,3 +3167,33 @@ test "pbt_yaml_full_style_roundtrip" {
     max_success=100,
   )
 }
+
+///|
+/// PBT: JSONC printer is idempotent — print ∘ parse ∘ print == print
+test "pbt_jsonc_printer_idempotent" {
+  @qc.quick_check(
+    @qc.forall(gen_simple_json_node(), fn(node) {
+      let first = @jsonc.print(node)
+      match @jsonc.parse(first) {
+        Ok(reparsed) => @jsonc.print(reparsed) == first
+        Err(_) => false
+      }
+    }),
+    max_success=100,
+  )
+}
+
+///|
+/// PBT: YAML printer is idempotent — print ∘ parse ∘ print == print
+test "pbt_yaml_printer_idempotent" {
+  @qc.quick_check(
+    @qc.forall(gen_simple_yaml_node(), fn(node) {
+      let first = @yaml.print(node)
+      match @yaml.parse(first) {
+        Ok(reparsed) => @yaml.print(reparsed) == first
+        Err(_) => false
+      }
+    }),
+    max_success=100,
+  )
+}
