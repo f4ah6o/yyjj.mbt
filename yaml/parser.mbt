@@ -161,7 +161,7 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
         let _ = self.advance()
       }
       Some(Comment(content)) => {
-        if not(self.saw_newline) {
+        if !self.saw_newline {
           let tok = self.advance()
           guard tok is Some(t) else { break }
           let comment = @common.Comment::new(
@@ -390,7 +390,7 @@ fn Parser::parse_mapping_with_first_key(
 
     // If there's no indent and we see a potential key followed by colon,
     // then this key has no value (implicit null) and the next thing is a sibling key
-    let value = if not(has_indent) && self.is_sibling_key_ahead() {
+    let value = if !has_indent && self.is_sibling_key_ahead() {
       // This is a sibling key, not a value - return null for current key
       YNull(@common.Trivia::empty())
     } else if has_indent && has_key_after {
@@ -444,7 +444,7 @@ fn Parser::parse_mapping_with_first_key(
           break
         }
         // If no potential key, also break
-        if not(is_potential_key(next_kind)) {
+        if !is_potential_key(next_kind) {
           break
         }
         // Otherwise continue the loop to parse the next key
@@ -469,7 +469,7 @@ fn Parser::parse_mapping_with_first_key(
       }
       // Otherwise, the Indent starts a nested value for a key we haven't seen yet
       // In this case, we've completed this mapping
-      if not(has_sibling_key) {
+      if !has_sibling_key {
         break
       }
     }
@@ -591,7 +591,7 @@ fn Parser::parse_flow_sequence(
   let _ = self.advance() // consume [
   let elements : Array[YamlNode] = []
   self.skip_trivia()
-  while self.peek_kind() != Some(RBracket) && not(self.is_eof()) {
+  while self.peek_kind() != Some(RBracket) && !self.is_eof() {
     let elem = match self.parse_value() {
       Ok(v) => v
       Err(e) => return Err(e)
@@ -624,7 +624,7 @@ fn Parser::parse_flow_mapping(
   let _ = self.advance() // consume {
   let pairs : Array[YKeyValue] = []
   self.skip_trivia()
-  while self.peek_kind() != Some(RBrace) && not(self.is_eof()) {
+  while self.peek_kind() != Some(RBrace) && !self.is_eof() {
     // Parse key - can be scalar or complex (flow mapping/sequence)
     let key_leading = self.flush_leading()
     let key_node = match self.peek_kind() {
@@ -723,7 +723,7 @@ fn Parser::is_sibling_key_ahead(self : Parser) -> Bool {
   // Look at current position
   let start_pos = self.pos
   // Check if we have a potential key
-  if not(is_potential_key(self.peek_kind())) {
+  if !is_potential_key(self.peek_kind()) {
     return false
   }
   // Save position and look ahead
@@ -889,7 +889,7 @@ fn Parser::parse_indented_mapping(
     }
 
     // Check for empty value (sibling key ahead)
-    let value = if not(has_indent) && self.is_sibling_key_ahead() {
+    let value = if !has_indent && self.is_sibling_key_ahead() {
       YNull(@common.Trivia::empty())
     } else {
       match self.parse_value() {
@@ -945,7 +945,7 @@ fn Parser::parse_indented_mapping(
     }
 
     // Check if there's a potential key to continue
-    if not(is_potential_key(self.peek_kind())) {
+    if !is_potential_key(self.peek_kind()) {
       break
     }
     // Otherwise, continue for more keys

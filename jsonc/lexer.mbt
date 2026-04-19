@@ -62,10 +62,10 @@ fn Lexer::advance(self : Lexer) -> Char? {
 /// Skip while predicate is true, return collected string
 fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> String {
   let start = self.pos
-  while not(self.is_eof()) && pred(self.char_at(self.pos)) {
+  while !self.is_eof() && pred(self.char_at(self.pos)) {
     let _ = self.advance()
   }
-  (try! self.source[start:self.pos]).to_string()
+  self.source[start:self.pos].to_string()
 }
 
 ///|
@@ -313,7 +313,7 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
   // Fractional part
   if self.peek() == Some('.') {
     let _ = self.advance()
-    if not(self.peek() is Some(d) && d >= '0' && d <= '9') {
+    if !(self.peek() is Some(d) && d >= '0' && d <= '9') {
       return Token::new(
         Invalid("invalid number: expected digit after decimal point"),
         @common.Span::new(start, self.current_pos()),
@@ -329,7 +329,7 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
     if self.peek() is Some(s) && (s == '+' || s == '-') {
       let _ = self.advance()
     }
-    if not(self.peek() is Some(d) && d >= '0' && d <= '9') {
+    if !(self.peek() is Some(d) && d >= '0' && d <= '9') {
       return Token::new(
         Invalid("invalid number: expected digit in exponent"),
         @common.Span::new(start, self.current_pos()),
@@ -339,7 +339,7 @@ fn Lexer::lex_number(self : Lexer, start : @common.Pos) -> Token {
       let _ = self.advance()
     }
   }
-  let num = (try! self.source[num_start:self.pos]).to_string()
+  let num = self.source[num_start:self.pos].to_string()
   Token::new(Number(num), @common.Span::new(start, self.current_pos()))
 }
 
@@ -360,9 +360,7 @@ fn Lexer::lex_keyword(
         // Not a keyword, might be an identifier (invalid in JSON)
         let ident = self.skip_while(fn(c) { is_ident_char(c) })
         return Token::new(
-          Invalid(
-            "unexpected identifier: " + (try! expected[:i]).to_string() + ident,
-          ),
+          Invalid("unexpected identifier: " + expected[:i].to_string() + ident),
           @common.Span::new(start, self.current_pos()),
         )
       }

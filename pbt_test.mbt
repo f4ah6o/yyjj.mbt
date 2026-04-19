@@ -194,7 +194,7 @@ fn gen_plain_scalar_safe_string() -> @qc.Gen[String] {
       | "OFF" => true
       _ => false
     }
-    if result.is_empty() || not(has_non_space) || is_keyword {
+    if result.is_empty() || !has_non_space || is_keyword {
       "text"
     } else if result.has_prefix(" ") ||
       result.has_prefix(":") ||
@@ -902,7 +902,7 @@ fn normalize_comment_content(
   let result : Array[String] = []
   for c in comments {
     let trimmed = c.content.trim()
-    if not(trimmed.is_empty()) {
+    if !trimmed.is_empty() {
       result.push(trimmed.to_string())
     }
   }
@@ -979,7 +979,7 @@ test "pbt_jsonc_to_yaml_trivia_preserved" {
               current_found = true
             }
           }
-          if not(current_found) {
+          if !current_found {
             found = false
           }
         }
@@ -1002,7 +1002,7 @@ fn string_contains(haystack : String, needle : String) -> Bool {
     // Check if needle_chars appears in haystack_chars
     let mut found = false
     let mut i = 0
-    while i <= haystack_chars.length() - needle_chars.length() && not(found) {
+    while i <= haystack_chars.length() - needle_chars.length() && !found {
       let mut is_match = true
       let mut j = 0
       while j < needle_chars.length() && is_match {
@@ -2235,7 +2235,7 @@ fn validate_anchors_in_node(
     @yaml.YAnchor(_, inner) => validate_anchors_in_node(inner, anchors)
     @yaml.YSequence(elements, _, _) => {
       for e in elements {
-        if not(validate_anchors_in_node(e, anchors)) {
+        if !validate_anchors_in_node(e, anchors) {
           return false
         }
       }
@@ -2243,8 +2243,8 @@ fn validate_anchors_in_node(
     }
     @yaml.YMapping(pairs, _, _) => {
       for p in pairs {
-        if not(validate_anchors_in_node(p.key, anchors)) ||
-          not(validate_anchors_in_node(p.value, anchors)) {
+        if !validate_anchors_in_node(p.key, anchors) ||
+          !validate_anchors_in_node(p.value, anchors) {
           return false
         }
       }

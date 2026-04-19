@@ -104,7 +104,7 @@ fn Lexer::count_spaces(self : Lexer) -> Int {
 ///|
 /// Handle indentation at start of line
 fn Lexer::handle_indent(self : Lexer) -> Token? {
-  if not(self.at_line_start) {
+  if !self.at_line_start {
     return None
   }
   let spaces = self.count_spaces()
@@ -278,10 +278,10 @@ pub fn Lexer::next_token(self : Lexer) -> Token {
 ///|
 fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> String {
   let start = self.pos
-  while not(self.is_eof()) && pred(self.char_at(self.pos)) {
+  while !self.is_eof() && pred(self.char_at(self.pos)) {
     let _ = self.advance()
   }
-  (try! self.source[start:self.pos]).to_string()
+  self.source[start:self.pos].to_string()
 }
 
 ///|
@@ -413,7 +413,7 @@ fn Lexer::lex_literal_block(self : Lexer, start : @common.Pos) -> Token {
   // Read block content based on indentation
   let block_indent = self.current_indent() + 2 // Default indent increase
   let buf = StringBuilder::new()
-  while not(self.is_eof()) {
+  while !self.is_eof() {
     let spaces = self.count_spaces()
     if spaces < block_indent {
       break
@@ -448,9 +448,9 @@ fn Lexer::lex_literal_block(self : Lexer, start : @common.Pos) -> Token {
         let second_idx = len - 2
         let second_last = content[second_idx].to_int().unsafe_to_char()
         if second_last == '\r' {
-          (try! content[:second_idx]).to_string()
+          content[:second_idx].to_string()
         } else {
-          (try! content[:last_idx]).to_string()
+          content[:last_idx].to_string()
         }
       } else {
         ""
@@ -484,7 +484,7 @@ fn Lexer::lex_folded_block(self : Lexer, start : @common.Pos) -> Token {
   let block_indent = self.current_indent() + 2
   let buf = StringBuilder::new()
   let mut first_line = true
-  while not(self.is_eof()) {
+  while !self.is_eof() {
     let spaces = self.count_spaces()
     if spaces < block_indent {
       break
@@ -493,7 +493,7 @@ fn Lexer::lex_folded_block(self : Lexer, start : @common.Pos) -> Token {
     for i = 0; i < spaces; i = i + 1 {
       let _ = self.advance()
     }
-    if not(first_line) {
+    if !first_line {
       buf.write_char(' ') // Fold newlines to spaces
     }
     first_line = false
@@ -525,7 +525,7 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
   // - ` #` (space + hash, comment)
   // - Flow indicators: { } [ ] ,
   let mut last_non_space_pos = self.pos
-  while not(self.is_eof()) {
+  while !self.is_eof() {
     let ch = self.char_at(self.pos)
     // Check for terminators
     match ch {
@@ -563,7 +563,7 @@ fn Lexer::lex_plain_scalar(self : Lexer, start : @common.Pos) -> Token {
   }
   // Get the scalar string (trimmed of trailing whitespace)
   let start_byte = start.offset
-  let scalar = (try! self.source[start_byte:last_non_space_pos]).to_string()
+  let scalar = self.source[start_byte:last_non_space_pos].to_string()
   // Check for keywords
   let kind : TokenKind = match scalar {
     "null" | "Null" | "NULL" | "~" => NullValue

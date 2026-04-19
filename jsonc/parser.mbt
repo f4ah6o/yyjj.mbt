@@ -127,7 +127,7 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
       }
       Some(LineComment(content)) => {
         // Line comment on same line is trailing
-        if not(self.saw_newline) {
+        if !self.saw_newline {
           let tok = self.advance()
           guard tok is Some(t) else { break }
           let comment = @common.Comment::new(
@@ -143,7 +143,7 @@ fn Parser::collect_trailing(self : Parser) -> Array[@common.Comment] {
       }
       Some(BlockComment(content)) =>
         // Block comment on same line is trailing
-        if not(self.saw_newline) {
+        if !self.saw_newline {
           let tok = self.advance()
           guard tok is Some(t) else { break }
           let comment = @common.Comment::new(
@@ -279,7 +279,7 @@ pub fn Parser::parse(self : Parser) -> Result[JsonNode, @common.ParseError] {
   }
   self.skip_trivia()
   // Check for trailing content
-  if not(self.is_eof()) {
+  if !self.is_eof() {
     let tok = self.peek()
     guard tok is Some(t) else { return Ok(node) }
     return Err(

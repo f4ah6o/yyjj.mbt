@@ -16,5 +16,6 @@
     "parser"
   ],
   "description": "JSONC⇔YAML converter library with comment preservation",
-  "preferred-target": "js"
+  "preferred-target": "js",
+  "warn-list": "-27"
 }

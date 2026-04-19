@@ -2,7 +2,7 @@
 test "yaml_lex_simple_mapping" {
   let lexer = @yaml.Lexer::new("key: value")
   let tokens = lexer.tokenize()
-  let kinds = tokens.filter(fn(t) { not(t.is_trivia()) }).map(fn(t) { t.kind })
+  let kinds = tokens.filter(fn(t) { !t.is_trivia() }).map(fn(t) { t.kind })
   inspect(
     kinds,
     content="[PlainScalar(\"key\"), Colon, PlainScalar(\"value\"), Eof]",
