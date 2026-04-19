@@ -18,6 +18,9 @@ test:
 test-update:
     moon test --update --target {{target}}
 
+bench:
+    moon bench --target {{target}}
+
 run:
     moon run src/main --target {{target}}
 
